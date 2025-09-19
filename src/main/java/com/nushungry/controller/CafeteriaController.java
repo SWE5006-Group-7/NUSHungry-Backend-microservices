@@ -1,6 +1,7 @@
 package com.nushungry.controller;
 
 import com.nushungry.model.Cafeteria;
+import com.nushungry.model.CafeteriaDetailDTO;
 import com.nushungry.service.CafeteriaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,9 +25,26 @@ public class CafeteriaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cafeteria> getCafeteriaById(@PathVariable Long id) {
+    public ResponseEntity<CafeteriaDetailDTO> getCafeteriaById(@PathVariable Long id) {
         return cafeteriaService.findById(id)
-                .map(ResponseEntity::ok)
+                .map(cafeteria -> {
+                    CafeteriaDetailDTO dto = new CafeteriaDetailDTO(
+                        cafeteria.getId(),
+                        cafeteria.getName(),
+                        cafeteria.getDescription(),
+                        cafeteria.getLocation(),
+                        cafeteria.getLatitude(),
+                        cafeteria.getLongitude(),
+                        cafeteria.getImageUrl(),
+                        cafeteria.getTermTimeOpeningHours(),
+                        cafeteria.getVacationOpeningHours(),
+                        cafeteria.getNearestBusStop(),
+                        cafeteria.getNearestCarpark(),
+                        cafeteria.getHalalInfo(),
+                        cafeteria.getSeatingCapacity()
+                    );
+                    return ResponseEntity.ok(dto);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
