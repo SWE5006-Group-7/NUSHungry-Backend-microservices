@@ -1,13 +1,14 @@
 package com.nushungry.controller;
 
 import com.nushungry.model.Cafeteria;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.nushungry.model.Cafeteria;
 import com.nushungry.service.CafeteriaService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -16,10 +17,8 @@ import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 @WebMvcTest(value = CafeteriaController.class, excludeAutoConfiguration = {org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class})
-// Exclude security auto-configuration for testing purposes
-class CafeteriaControllerTest {
+class CafeteriaControllerUnitTest {
 
     @Autowired
     private MockMvc mockMvc;
