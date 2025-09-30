@@ -32,6 +32,10 @@ public class Cafeteria {
     @JsonManagedReference
     private List<Stall> stalls;
 
+    @OneToMany(mappedBy = "cafeteria", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("cafeteria-images")
+    private List<Image> images;
+
     public List<Stall> getStalls() {
         return stalls;
     }

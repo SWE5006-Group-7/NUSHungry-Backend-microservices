@@ -36,4 +36,8 @@ public class Stall {
     @OneToMany(mappedBy = "stall", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<Review> reviews;
+
+    @OneToMany(mappedBy = "stall", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("stall-images")
+    private List<Image> images;
 }
