@@ -37,7 +37,11 @@ public class StallController {
                         stall.getHalalInfo(),
                         stall.getContact()
                     );
-                    dto.setCafeteria(stall.getCafeteria());
+                    // 只设置 cafeteria 的基本信息,避免 Hibernate 懒加载序列化问题
+                    if (stall.getCafeteria() != null) {
+                        dto.setCafeteriaId(stall.getCafeteria().getId());
+                        dto.setCafeteriaName(stall.getCafeteria().getName());
+                    }
                     dto.setReviews(stall.getReviews());
                     dto.setImages(imageService.getStallImages(id));
                     return ResponseEntity.ok(dto);

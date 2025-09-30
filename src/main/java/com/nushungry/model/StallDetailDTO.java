@@ -9,7 +9,8 @@ public class StallDetailDTO {
     private String imageUrl;
     private String halalInfo;
     private String contact;
-    private Cafeteria cafeteria;
+    private Long cafeteriaId;
+    private String cafeteriaName;
     private List<Review> reviews;
     private List<Image> images;
 
@@ -36,8 +37,10 @@ public class StallDetailDTO {
     public void setHalalInfo(String halalInfo) { this.halalInfo = halalInfo; }
     public String getContact() { return contact; }
     public void setContact(String contact) { this.contact = contact; }
-    public Cafeteria getCafeteria() { return cafeteria; }
-    public void setCafeteria(Cafeteria cafeteria) { this.cafeteria = cafeteria; }
+    public Long getCafeteriaId() { return cafeteriaId; }
+    public void setCafeteriaId(Long cafeteriaId) { this.cafeteriaId = cafeteriaId; }
+    public String getCafeteriaName() { return cafeteriaName; }
+    public void setCafeteriaName(String cafeteriaName) { this.cafeteriaName = cafeteriaName; }
     public List<Review> getReviews() { return reviews; }
     public void setReviews(List<Review> reviews) { this.reviews = reviews; }
     public List<Image> getImages() { return images; }
