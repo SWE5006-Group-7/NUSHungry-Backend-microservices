@@ -12,8 +12,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
@@ -48,5 +51,18 @@ public class UserController {
         User user = userService.getCurrentUser();
         List<Favorite> favorites = favoriteRepository.findByUser(user);
         return ResponseEntity.ok(favorites);
+    }
+
+    @PostMapping("/avatar")
+    @Operation(summary = "Upload user avatar")
+    public ResponseEntity<Map<String, String>> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        try {
+            String avatarUrl = userService.uploadAvatar(file);
+            Map<String, String> response = new HashMap<>();
+            response.put("avatarUrl", avatarUrl);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

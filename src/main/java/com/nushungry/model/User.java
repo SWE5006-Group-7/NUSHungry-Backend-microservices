@@ -44,6 +44,9 @@ public class User implements UserDetails {
     @Column(length = 20)
     private String role = "ROLE_USER";
 
+    @Column(length = 500)
+    private String avatarUrl;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
