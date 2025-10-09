@@ -37,6 +37,9 @@ class CafeteriaControllerUnitTest {
     @MockBean
     private UserDetailsService userDetailsService;
 
+    @MockBean
+    private com.nushungry.service.UserService userService;
+
     @Autowired
     private ObjectMapper objectMapper;
 
