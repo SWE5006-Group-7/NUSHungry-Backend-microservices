@@ -48,13 +48,15 @@ public class SecurityConfig {
                                 "/api/admin/auth/**",
                                 "/api/cafeterias/**",
                                 "/api/stalls/**",
-                                "/api/reviews/**",
                                 "/api/images/**",
                                 "/uploads/**",          // 允许访问上传的静态资源
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
+                        // 评价接口：GET 请求允许匿名访问，其他需要认证
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/reviews/**").permitAll()
+                        .requestMatchers("/api/reviews/**").authenticated()
                         .requestMatchers("/api/favorites/**").authenticated()
                         .anyRequest().authenticated()
                 )

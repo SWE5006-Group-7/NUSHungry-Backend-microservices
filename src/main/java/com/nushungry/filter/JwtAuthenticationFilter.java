@@ -31,7 +31,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         "/api/auth/register",
         "/api/cafeterias",
         "/api/stalls",
-        "/api/reviews",
         "/api/images",
         "/v3/api-docs",
         "/swagger-ui",
@@ -43,9 +42,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String requestPath = request.getRequestURI();
+        String method = request.getMethod();
 
         // 跳过不需要认证的路径
         if (shouldSkipAuthentication(requestPath)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 评价接口：只有 GET 请求可以跳过认证
+        if (requestPath.startsWith("/api/reviews") && "GET".equalsIgnoreCase(method)) {
             chain.doFilter(request, response);
             return;
         }

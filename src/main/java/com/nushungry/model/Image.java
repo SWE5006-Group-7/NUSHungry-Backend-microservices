@@ -1,6 +1,7 @@
 package com.nushungry.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -8,6 +9,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "images")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Image {
 
     @Id

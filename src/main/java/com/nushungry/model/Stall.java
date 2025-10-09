@@ -1,6 +1,7 @@
 package com.nushungry.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -10,6 +11,7 @@ import java.util.List;
 
 @Data
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Stall {
 
     @Id
@@ -41,6 +43,12 @@ public class Stall {
     @OneToMany(mappedBy = "stall", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("stall-images")
     private List<Image> images;
+
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0; // 平均评分
+
+    @Column(name = "review_count")
+    private Integer reviewCount = 0; // 评价数量
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
