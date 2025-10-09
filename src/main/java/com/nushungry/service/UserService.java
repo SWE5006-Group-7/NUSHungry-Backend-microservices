@@ -5,6 +5,7 @@ import com.nushungry.dto.LoginRequest;
 import com.nushungry.dto.RegisterRequest;
 import com.nushungry.dto.UserProfileResponse;
 import com.nushungry.model.User;
+import com.nushungry.model.UserRole;
 import com.nushungry.repository.UserRepository;
 import com.nushungry.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -48,7 +50,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
         user.setEnabled(true);
-        user.setRole("ROLE_USER");
+        user.setRole(UserRole.ROLE_USER);
 
         User savedUser = userRepository.save(user);
 
@@ -97,6 +99,24 @@ public class UserService {
 
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    /**
+     * 根据用户名查找用户
+     * @param username 用户名
+     * @return Optional<User>
+     */
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    /**
+     * 根据邮箱查找用户
+     * @param email 邮箱
+     * @return Optional<User>
+     */
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
 
     public String uploadAvatar(MultipartFile file) throws IOException {

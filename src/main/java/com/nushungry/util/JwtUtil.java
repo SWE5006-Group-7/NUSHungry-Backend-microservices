@@ -71,4 +71,36 @@ public class JwtUtil {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
+
+    /**
+     * Generate token with custom claims
+     * Used for including additional information like roles in the token
+     */
+    public String generateTokenWithClaims(String username, Map<String, Object> additionalClaims) {
+        Map<String, Object> claims = new HashMap<>(additionalClaims);
+        return createToken(claims, username);
+    }
+
+    /**
+     * Validate token with username string (for cases where UserDetails is not available)
+     */
+    public Boolean validateToken(String token, String username) {
+        final String extractedUsername = extractUsername(token);
+        return (extractedUsername.equals(username) && !isTokenExpired(token));
+    }
+
+    /**
+     * Get JWT expiration time in milliseconds
+     */
+    public Long getJwtExpiration() {
+        return expiration;
+    }
+
+    /**
+     * Extract a custom claim from the token
+     */
+    public Object extractCustomClaim(String token, String claimName) {
+        final Claims claims = extractAllClaims(token);
+        return claims.get(claimName);
+    }
 }

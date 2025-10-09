@@ -41,11 +41,15 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Boolean enabled = true;
 
-    @Column(length = 20)
-    private String role = "ROLE_USER";
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    private UserRole role = UserRole.ROLE_USER;
 
     @Column(length = 500)
     private String avatarUrl;
+
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
 
     @PrePersist
     protected void onCreate() {
@@ -61,7 +65,7 @@ public class User implements UserDetails {
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role));
+        return List.of(new SimpleGrantedAuthority(role.getValue()));
     }
 
     @Override
@@ -92,5 +96,19 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    /**
+     * 检查用户是否为管理员
+     */
+    public boolean isAdmin() {
+        return role == UserRole.ROLE_ADMIN;
+    }
+
+    /**
+     * 检查用户是否为普通用户
+     */
+    public boolean isRegularUser() {
+        return role == UserRole.ROLE_USER;
     }
 }

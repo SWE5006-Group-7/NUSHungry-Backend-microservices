@@ -19,7 +19,7 @@ import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-@WebMvcTest(CafeteriaController.class)
+@WebMvcTest(value = CafeteriaController.class, excludeAutoConfiguration = {org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class})
 class CafeteriaControllerUnitTest {
 
     @Autowired
