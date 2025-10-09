@@ -21,7 +21,15 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 配置静态资源访问路径
+        // 配置静态资源访问路径 - 图片
+        registry.addResourceHandler("/uploads/images/**")
+                .addResourceLocations("file:uploads/images/");
+
+        // 配置静态资源访问路径 - 缩略图
+        registry.addResourceHandler("/uploads/thumbnails/**")
+                .addResourceLocations("file:uploads/thumbnails/");
+
+        // 兼容旧的路径
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:uploads/");
     }

@@ -50,6 +50,7 @@ public class SecurityConfig {
                                 "/api/stalls/**",
                                 "/api/reviews/**",
                                 "/api/images/**",
+                                "/uploads/**",          // 允许访问上传的静态资源
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
