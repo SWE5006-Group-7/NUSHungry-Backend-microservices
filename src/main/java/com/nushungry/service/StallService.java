@@ -29,5 +29,15 @@ public class StallService {
         return stallRepository.save(stall);
     }
 
+    public void deleteById(Long id) {
+        if (!stallRepository.existsById(id)) {
+            throw new IllegalArgumentException("Stall not found with id: " + id);
+        }
+        stallRepository.deleteById(id);
+    }
+
+    public List<Stall> findByCafeteriaId(Long cafeteriaId) {
+        return stallRepository.findByCafeteriaId(cafeteriaId);
+    }
 
 }
