@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/admin/auth/**",
+                                "/api/password/**",     // 允许访问密码重置接口
                                 "/api/cafeterias/**",
                                 "/api/stalls/**",
                                 "/api/images/**",

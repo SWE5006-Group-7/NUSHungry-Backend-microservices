@@ -147,4 +147,18 @@ public class UserService {
 
         return avatarUrl;
     }
+
+    /**
+     * 重置用户密码
+     * @param email 邮箱
+     * @param newPassword 新密码(明文)
+     * @throws RuntimeException 如果用户不存在
+     */
+    public void resetPassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }
