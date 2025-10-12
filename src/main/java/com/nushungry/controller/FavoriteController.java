@@ -4,6 +4,7 @@ import com.nushungry.model.Favorite;
 import com.nushungry.model.Stall;
 import com.nushungry.service.FavoriteService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,7 +43,16 @@ public class FavoriteController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<Map<String, Boolean>> checkFavorite(@RequestParam String userId, @RequestParam Long stallId) {
+    public ResponseEntity<Map<String, Boolean>> checkFavorite(
+            @RequestParam String userId,
+            @RequestParam Long stallId,
+            Authentication authentication) {
+
+        // 如果未认证，直接返回false
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.ok(Map.of("isFavorite", false));
+        }
+
         boolean isFavorite = favoriteService.isFavorite(userId, stallId);
         return ResponseEntity.ok(Map.of("isFavorite", isFavorite));
     }

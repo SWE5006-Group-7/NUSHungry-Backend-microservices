@@ -38,6 +38,9 @@ public class ReviewService {
     @Autowired
     private RatingCalculationService ratingCalculationService;
 
+    @Autowired
+    private ReviewLikeService reviewLikeService;
+
     /**
      * 创建评价
      */
@@ -193,11 +196,63 @@ public class ReviewService {
         response.setCreatedAt(review.getCreatedAt());
         response.setUpdatedAt(review.getUpdatedAt());
 
+        // 点赞信息
+        response.setLikesCount(review.getLikesCount() != null ? review.getLikesCount() : 0);
+        if (currentUserId != null) {
+            try {
+                response.setLiked(reviewLikeService.isLikedByUser(review.getId(), currentUserId));
+            } catch (Exception e) {
+                response.setLiked(false);
+            }
+        } else {
+            response.setLiked(false);
+        }
+
         // 权限判断
         boolean isOwner = currentUserId != null && review.getUser().getId().equals(currentUserId);
         response.setCanEdit(isOwner);
         response.setCanDelete(isOwner);
 
         return response;
+    }
+
+    /**
+     * 管理员获取所有评价(支持筛选)
+     */
+    public Page<Review> getAllReviewsForAdmin(Pageable pageable, String keyword, Integer rating) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            if (rating != null) {
+                return reviewRepository.findByCommentContainingAndRating(keyword, rating.doubleValue(), pageable);
+            } else {
+                return reviewRepository.findByCommentContaining(keyword, pageable);
+            }
+        } else if (rating != null) {
+            return reviewRepository.findByRating(rating.doubleValue(), pageable);
+        } else {
+            return reviewRepository.findAll(pageable);
+        }
+    }
+
+    /**
+     * 获取评价统计信息(管理员用)
+     */
+    public java.util.Map<String, Object> getReviewStatsForAdmin() {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+
+        // 总评价数
+        long totalCount = reviewRepository.count();
+        stats.put("totalCount", totalCount);
+
+        // 今日新增(需要ReviewRepository添加方法,暂时返回0)
+        stats.put("todayCount", 0L);
+
+        // 平均评分
+        Double avgRating = reviewRepository.findAverageRating();
+        stats.put("avgRating", avgRating != null ? avgRating : 0.0);
+
+        // 被举报数(需要关联查询,暂时返回0)
+        stats.put("reportedCount", 0L);
+
+        return stats;
     }
 }

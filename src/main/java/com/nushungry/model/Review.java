@@ -46,6 +46,9 @@ public class Review {
     @Column(name = "moderated_by")
     private String moderatedBy; // 审核人(管理员用户名)
 
+    @Column(name = "likes_count", columnDefinition = "integer default 0")
+    private Integer likesCount = 0; // 点赞数量
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -58,7 +61,7 @@ public class Review {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "stall_id", nullable = false)
-    @JsonBackReference
+    @JsonIgnoreProperties({"reviews", "hibernateLazyInitializer", "handler"})
     private Stall stall;
 
     @PrePersist

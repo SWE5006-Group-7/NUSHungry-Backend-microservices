@@ -3,8 +3,12 @@ package com.nushungry.controller;
 import com.nushungry.dto.CreateReviewRequest;
 import com.nushungry.dto.ReviewResponse;
 import com.nushungry.dto.UpdateReviewRequest;
+import com.nushungry.dto.CreateReportRequest;
+import com.nushungry.dto.ReportResponse;
 import com.nushungry.model.User;
 import com.nushungry.service.ReviewService;
+import com.nushungry.service.ReviewLikeService;
+import com.nushungry.service.ReviewReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -38,6 +42,8 @@ import java.util.Map;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final ReviewLikeService reviewLikeService;
+    private final ReviewReportService reviewReportService;
 
     /**
      * 创建评价
@@ -239,6 +245,63 @@ public class ReviewController {
             }
         } catch (Exception e) {
             log.error("Error getting user reviews: {}", e.getMessage());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 点赞评价（切换点赞状态）
+     */
+    @PostMapping("/{id}/like")
+    @Operation(summary = "点赞评价", description = "切换评价的点赞状态（已点赞则取消，未点赞则点赞）")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<Map<String, Object>> toggleLike(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+
+        try {
+            boolean liked = reviewLikeService.toggleLike(id, currentUser.getId());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", liked ? "点赞成功" : "取消点赞成功");
+            response.put("liked", liked);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error toggling like: {}", e.getMessage());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 举报评价
+     */
+    @PostMapping("/{id}/report")
+    @Operation(summary = "举报评价", description = "举报不当评价内容")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<Map<String, Object>> reportReview(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateReportRequest request,
+            @AuthenticationPrincipal User currentUser) {
+
+        try {
+            ReportResponse report = reviewReportService.createReport(id, currentUser.getId(), request);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "举报提交成功，我们会尽快处理");
+            response.put("data", report);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            log.error("Error reporting review: {}", e.getMessage());
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", e.getMessage());

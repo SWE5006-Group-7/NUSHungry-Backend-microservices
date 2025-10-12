@@ -28,6 +28,31 @@ import java.util.Map;
 public class AdminReviewController {
 
     private final ModerationService moderationService;
+    private final com.nushungry.service.ReviewService reviewService;
+
+    @GetMapping
+    @Operation(summary = "获取所有评价列表", description = "分页获取所有评价,支持关键词和评分筛选")
+    public ResponseEntity<Page<Review>> getAllReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection
+    ) {
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ?
+                Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Page<Review> reviews = reviewService.getAllReviewsForAdmin(pageable, keyword, rating);
+        return ResponseEntity.ok(reviews);
+    }
+
+    @GetMapping("/stats")
+    @Operation(summary = "获取评价统计", description = "获取评价统计信息")
+    public ResponseEntity<Map<String, Object>> getReviewStats() {
+        Map<String, Object> stats = reviewService.getReviewStatsForAdmin();
+        return ResponseEntity.ok(stats);
+    }
 
     @GetMapping("/pending")
     @Operation(summary = "获取待审核评价列表", description = "分页获取所有待审核的评价")
@@ -44,7 +69,7 @@ public class AdminReviewController {
         return ResponseEntity.ok(reviews);
     }
 
-    @GetMapping("/stats")
+    @GetMapping("/moderation/stats")
     @Operation(summary = "获取审核统计", description = "获取所有审核状态的评价统计信息")
     public ResponseEntity<Map<String, Long>> getModerationStats() {
         Map<String, Long> stats = moderationService.getModerationStats();

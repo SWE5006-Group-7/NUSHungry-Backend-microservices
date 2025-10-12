@@ -23,6 +23,8 @@ public class ReviewResponse {
     private Double rating;
     private String comment;
     private List<String> imageUrls;
+    private Integer likesCount; // 点赞数量
+    private boolean liked; // 当前用户是否已点赞
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean canEdit; // 当前用户是否可以编辑

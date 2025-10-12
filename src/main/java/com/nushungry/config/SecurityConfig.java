@@ -58,6 +58,11 @@ public class SecurityConfig {
                         // 评价接口：GET 请求允许匿名访问，其他需要认证
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/reviews/**").permitAll()
                         .requestMatchers("/api/reviews/**").authenticated()
+                        // 搜索历史接口：GET请求允许匿名访问（未登录返回空），其他需要认证
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/search-history/**").permitAll()
+                        .requestMatchers("/api/search-history/**").authenticated()
+                        // 收藏接口：GET请求允许匿名访问（检查收藏状态），其他需要认证
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/favorites/**").permitAll()
                         .requestMatchers("/api/favorites/**").authenticated()
                         .anyRequest().authenticated()
                 )

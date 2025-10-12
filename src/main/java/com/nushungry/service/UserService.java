@@ -32,8 +32,13 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthResponse register(RegisterRequest request) {
+        return register(request, null, null);
+    }
+
+    public AuthResponse register(RegisterRequest request, String ipAddress, String userAgent) {
         // Check if username already exists
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username already exists");
@@ -54,13 +59,31 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(savedUser);
+        // Generate Access Token with userId claim
+        java.util.Map<String, Object> claims = new java.util.HashMap<>();
+        claims.put("userId", savedUser.getId());
+        String accessToken = jwtUtil.generateAccessToken(savedUser.getUsername(), claims);
 
-        return new AuthResponse(token, savedUser.getId(), savedUser.getUsername(), savedUser.getEmail(), savedUser.getAvatarUrl());
+        // Generate Refresh Token
+        String refreshToken = refreshTokenService.createRefreshToken(savedUser.getId(), ipAddress, userAgent);
+
+        AuthResponse response = new AuthResponse();
+        response.setToken(accessToken);
+        response.setRefreshToken(refreshToken);
+        response.setExpiresIn(jwtUtil.getAccessTokenExpiration());
+        response.setId(savedUser.getId());
+        response.setUsername(savedUser.getUsername());
+        response.setEmail(savedUser.getEmail());
+        response.setAvatarUrl(savedUser.getAvatarUrl());
+
+        return response;
     }
 
     public AuthResponse login(LoginRequest request) {
+        return login(request, null, null);
+    }
+
+    public AuthResponse login(LoginRequest request, String ipAddress, String userAgent) {
         // Authenticate user
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -72,10 +95,24 @@ public class UserService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user);
+        // Generate Access Token with userId claim
+        java.util.Map<String, Object> claims = new java.util.HashMap<>();
+        claims.put("userId", user.getId());
+        String accessToken = jwtUtil.generateAccessToken(user.getUsername(), claims);
 
-        return new AuthResponse(token, user.getId(), user.getUsername(), user.getEmail(), user.getAvatarUrl());
+        // Generate Refresh Token
+        String refreshToken = refreshTokenService.createRefreshToken(user.getId(), ipAddress, userAgent);
+
+        AuthResponse response = new AuthResponse();
+        response.setToken(accessToken);
+        response.setRefreshToken(refreshToken);
+        response.setExpiresIn(jwtUtil.getAccessTokenExpiration());
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setEmail(user.getEmail());
+        response.setAvatarUrl(user.getAvatarUrl());
+
+        return response;
     }
 
     public UserProfileResponse getCurrentUserProfile() {

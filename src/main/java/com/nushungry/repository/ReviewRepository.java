@@ -129,4 +129,27 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
      * 获取最新的待审核评价
      */
     List<Review> findTop10ByModerationStatusOrderByCreatedAtDesc(ModerationStatus moderationStatus);
+
+    // ==================== 管理员查询 ====================
+
+    /**
+     * 根据评论内容关键词查找评价
+     */
+    Page<Review> findByCommentContaining(String keyword, Pageable pageable);
+
+    /**
+     * 根据评分查找评价
+     */
+    Page<Review> findByRating(Double rating, Pageable pageable);
+
+    /**
+     * 根据评论内容和评分查找评价
+     */
+    Page<Review> findByCommentContainingAndRating(String keyword, Double rating, Pageable pageable);
+
+    /**
+     * 获取全局平均评分
+     */
+    @Query("SELECT AVG(r.rating) FROM Review r")
+    Double findAverageRating();
 }
