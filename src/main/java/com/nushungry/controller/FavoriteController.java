@@ -1,5 +1,8 @@
 package com.nushungry.controller;
 
+import com.nushungry.dto.BatchDeleteFavoritesRequest;
+import com.nushungry.dto.FavoriteResponse;
+import com.nushungry.dto.UpdateFavoriteOrderRequest;
 import com.nushungry.model.Favorite;
 import com.nushungry.model.Stall;
 import com.nushungry.service.FavoriteService;
@@ -55,5 +58,47 @@ public class FavoriteController {
 
         boolean isFavorite = favoriteService.isFavorite(userId, stallId);
         return ResponseEntity.ok(Map.of("isFavorite", isFavorite));
+    }
+
+    /**
+     * 获取用户收藏列表(带详细信息和排序)
+     */
+    @GetMapping("/user/{userId}/detailed")
+    public ResponseEntity<List<FavoriteResponse>> getUserFavoritesDetailed(@PathVariable String userId) {
+        List<FavoriteResponse> favorites = favoriteService.getUserFavoritesDetailed(userId);
+        return ResponseEntity.ok(favorites);
+    }
+
+    /**
+     * 批量删除收藏
+     */
+    @DeleteMapping("/batch")
+    public ResponseEntity<Void> batchDeleteFavorites(
+            @RequestParam String userId,
+            @RequestBody BatchDeleteFavoritesRequest request) {
+        favoriteService.batchDeleteFavorites(userId, request.getFavoriteIds());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 更新收藏排序
+     */
+    @PutMapping("/order")
+    public ResponseEntity<Void> updateFavoriteOrders(
+            @RequestParam String userId,
+            @RequestBody UpdateFavoriteOrderRequest request) {
+        favoriteService.updateFavoriteOrders(userId, request.getOrders());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 通过favoriteId删除单个收藏
+     */
+    @DeleteMapping("/{favoriteId}")
+    public ResponseEntity<Void> removeFavoriteById(
+            @PathVariable Long favoriteId,
+            @RequestParam String userId) {
+        favoriteService.removeFavoriteById(userId, favoriteId);
+        return ResponseEntity.noContent().build();
     }
 }
