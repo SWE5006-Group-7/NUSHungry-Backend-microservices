@@ -53,6 +53,10 @@ public class StallController {
             stallData.put("averageRating", stall.getAverageRating());
             stallData.put("reviewCount", stall.getReviewCount());
 
+            // 添加stall自己的坐标
+            stallData.put("latitude", stall.getLatitude());
+            stallData.put("longitude", stall.getLongitude());
+
             // 添加cafeteria信息
             if (stall.getCafeteria() != null) {
                 Map<String, Object> cafeteriaData = new HashMap<>();
@@ -61,9 +65,11 @@ public class StallController {
                 cafeteriaData.put("location", stall.getCafeteria().getLocation());
                 stallData.put("cafeteria", cafeteriaData);
                 stallData.put("cafeteriaName", stall.getCafeteria().getName()); // 前端使用cafeteriaName字段
+                stallData.put("cafeteriaId", stall.getCafeteria().getId()); // 添加cafeteriaId供前端判断
             } else {
                 stallData.put("cafeteria", null);
                 stallData.put("cafeteriaName", null);
+                stallData.put("cafeteriaId", null);
             }
 
             return stallData;
@@ -141,6 +147,10 @@ public class StallController {
                 stallData.put("averageRating", stall.getAverageRating());
                 stallData.put("reviewCount", stall.getReviewCount());
 
+                // 添加stall自己的坐标
+                stallData.put("latitude", stall.getLatitude());
+                stallData.put("longitude", stall.getLongitude());
+
                 // 添加cafeteria信息和距离
                 if (stall.getCafeteria() != null) {
                     Map<String, Object> cafeteriaData = new HashMap<>();
@@ -151,6 +161,7 @@ public class StallController {
                     cafeteriaData.put("longitude", stall.getCafeteria().getLongitude());
                     stallData.put("cafeteria", cafeteriaData);
                     stallData.put("cafeteriaName", stall.getCafeteria().getName());
+                    stallData.put("cafeteriaId", stall.getCafeteria().getId());
 
                     // 计算距离（如果提供了用户位置）
                     if (userLatitude != null && userLongitude != null) {
@@ -168,6 +179,7 @@ public class StallController {
                 } else {
                     stallData.put("cafeteria", null);
                     stallData.put("cafeteriaName", null);
+                    stallData.put("cafeteriaId", null);
                     stallData.put("distance", "N/A");
                     stallData.put("distanceValue", null);
                 }
@@ -201,11 +213,27 @@ public class StallController {
                         stall.getHalalInfo(),
                         stall.getContact()
                     );
-                    // 只设置 cafeteria 的基本信息,避免 Hibernate 懒加载序列化问题
+
+                    // 设置stall自己的坐标
+                    dto.setLatitude(stall.getLatitude());
+                    dto.setLongitude(stall.getLongitude());
+
+                    // 设置 cafeteria 的完整信息,包含坐标
                     if (stall.getCafeteria() != null) {
                         dto.setCafeteriaId(stall.getCafeteria().getId());
                         dto.setCafeteriaName(stall.getCafeteria().getName());
+
+                        // 创建cafeteria完整信息对象
+                        StallDetailDTO.CafeteriaBasicDTO cafeteriaDTO = new StallDetailDTO.CafeteriaBasicDTO(
+                            stall.getCafeteria().getId(),
+                            stall.getCafeteria().getName(),
+                            stall.getCafeteria().getLocation(),
+                            stall.getCafeteria().getLatitude(),
+                            stall.getCafeteria().getLongitude()
+                        );
+                        dto.setCafeteria(cafeteriaDTO);
                     }
+
                     dto.setReviews(stall.getReviews());
                     dto.setImages(imageService.getStallImages(id));
                     return ResponseEntity.ok(dto);

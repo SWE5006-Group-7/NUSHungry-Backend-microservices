@@ -255,4 +255,66 @@ public class ReviewService {
 
         return stats;
     }
+
+    /**
+     * 获取摊位的评分分布
+     */
+    public java.util.Map<String, Object> getRatingDistribution(Long stallId) {
+        List<Object[]> distribution = reviewRepository.getRatingDistributionByStallId(stallId);
+
+        // 初始化评分分布(1-5星)
+        java.util.Map<Integer, Long> ratingCount = new java.util.HashMap<>();
+        for (int i = 1; i <= 5; i++) {
+            ratingCount.put(i, 0L);
+        }
+
+        // 填充实际数据
+        for (Object[] row : distribution) {
+            Double rating = (Double) row[0];
+            Long count = (Long) row[1];
+            ratingCount.put(rating.intValue(), count);
+        }
+
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("distribution", ratingCount);
+        result.put("total", reviewRepository.countByStallId(stallId));
+        result.put("average", reviewRepository.getAverageRatingByStallId(stallId));
+
+        return result;
+    }
+
+    /**
+     * 获取摊位的评价列表（支持排序）
+     */
+    public Page<ReviewResponse> getReviewsByStallIdWithSort(Long stallId, Pageable pageable, String sortBy, Long currentUserId) {
+        Page<Review> reviews;
+
+        if (sortBy != null && (sortBy.equals("likesCount") || sortBy.equals("createdAt"))) {
+            reviews = reviewRepository.findByStallIdWithSort(stallId, sortBy, pageable);
+        } else {
+            // 默认按创建时间排序
+            reviews = reviewRepository.findByStallIdOrderByCreatedAtDesc(stallId, pageable);
+        }
+
+        return reviews.map(review -> convertToResponse(review, currentUserId));
+    }
+
+    /**
+     * 管理员删除评价
+     */
+    @Transactional
+    public void deleteReviewByAdmin(Long reviewId) {
+        log.info("Admin deleting review {}", reviewId);
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("评价不存在"));
+
+        Long stallId = review.getStall().getId();
+        reviewRepository.delete(review);
+
+        // 重新计算摊位评分
+        ratingCalculationService.recalculateStallRating(stallId);
+
+        log.info("Review deleted by admin successfully: {}", reviewId);
+    }
 }

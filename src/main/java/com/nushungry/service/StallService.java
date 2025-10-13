@@ -1,6 +1,7 @@
 package com.nushungry.service;
 
 import com.nushungry.dto.StallSearchRequest;
+import com.nushungry.model.Cafeteria;
 import com.nushungry.model.Stall;
 import com.nushungry.repository.StallRepository;
 import com.nushungry.specification.StallSpecification;
@@ -38,7 +39,29 @@ public class StallService {
         if (stall == null) {
             throw new IllegalArgumentException("Stall must not be null");
         }
+
+        // 自动填充坐标：如果stall有关联的cafeteria且自身没有设置坐标，则从cafeteria复制坐标
+        autoFillCoordinates(stall);
+
         return stallRepository.save(stall);
+    }
+
+    /**
+     * 自动填充摊位坐标
+     * 如果摊位关联了cafeteria且自身没有设置坐标，则从cafeteria复制坐标
+     */
+    private void autoFillCoordinates(Stall stall) {
+        // 如果stall已经有坐标，不需要自动填充
+        if (stall.getLatitude() != null && stall.getLongitude() != null) {
+            return;
+        }
+
+        // 如果stall有关联的cafeteria，从cafeteria复制坐标
+        Cafeteria cafeteria = stall.getCafeteria();
+        if (cafeteria != null && cafeteria.getLatitude() != 0.0 && cafeteria.getLongitude() != 0.0) {
+            stall.setLatitude(cafeteria.getLatitude());
+            stall.setLongitude(cafeteria.getLongitude());
+        }
     }
 
     public void deleteById(Long id) {

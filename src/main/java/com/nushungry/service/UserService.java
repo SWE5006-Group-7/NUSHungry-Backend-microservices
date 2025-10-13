@@ -16,7 +16,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import net.coobird.thumbnailator.Thumbnails;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -176,6 +181,49 @@ public class UserService {
         // Save file
         Path filePath = uploadPath.resolve(filename);
         Files.copy(file.getInputStream(), filePath);
+
+        // Update user avatar URL
+        String avatarUrl = "/uploads/avatars/" + filename;
+        user.setAvatarUrl(avatarUrl);
+        userRepository.save(user);
+
+        return avatarUrl;
+    }
+
+    /**
+     * 上传并裁剪头像
+     * @param file 上传的文件
+     * @param x 裁剪起始X坐标
+     * @param y 裁剪起始Y坐标
+     * @param width 裁剪宽度
+     * @param height 裁剪高度
+     * @return 头像URL
+     * @throws IOException IO异常
+     */
+    public String uploadAvatarWithCrop(MultipartFile file, int x, int y, int width, int height) throws IOException {
+        User user = getCurrentUser();
+
+        // Create upload directory if it doesn't exist
+        String uploadDir = "uploads/avatars/";
+        Path uploadPath = Paths.get(uploadDir);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        // Generate unique filename
+        String filename = UUID.randomUUID().toString() + ".jpg";
+        Path filePath = uploadPath.resolve(filename);
+
+        // Read the original image
+        BufferedImage originalImage = ImageIO.read(file.getInputStream());
+
+        // Crop and resize to 200x200 (standard avatar size)
+        Thumbnails.of(originalImage)
+                .sourceRegion(x, y, width, height)
+                .size(200, 200)
+                .outputFormat("jpg")
+                .outputQuality(0.9)
+                .toFile(filePath.toFile());
 
         // Update user avatar URL
         String avatarUrl = "/uploads/avatars/" + filename;

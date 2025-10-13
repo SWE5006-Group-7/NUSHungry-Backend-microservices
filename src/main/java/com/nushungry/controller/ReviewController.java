@@ -165,6 +165,7 @@ public class ReviewController {
             @PathVariable Long stallId,
             @Parameter(description = "页码（从0开始）") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "排序方式 (createdAt, likesCount)") @RequestParam(required = false) String sortBy,
             Authentication authentication) {
 
         try {
@@ -181,9 +182,15 @@ public class ReviewController {
 
                 return ResponseEntity.ok(response);
             } else {
-                // 分页返回
+                // 分页返回（支持排序）
                 Pageable pageable = PageRequest.of(page, size);
-                Page<ReviewResponse> reviewsPage = reviewService.getReviewsByStallId(stallId, pageable, currentUserId);
+                Page<ReviewResponse> reviewsPage;
+
+                if (sortBy != null && !sortBy.isEmpty()) {
+                    reviewsPage = reviewService.getReviewsByStallIdWithSort(stallId, pageable, sortBy, currentUserId);
+                } else {
+                    reviewsPage = reviewService.getReviewsByStallId(stallId, pageable, currentUserId);
+                }
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
@@ -197,6 +204,29 @@ public class ReviewController {
             }
         } catch (Exception e) {
             log.error("Error getting stall reviews: {}", e.getMessage());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 获取摊位的评分分布
+     */
+    @GetMapping("/stall/{stallId}/rating-distribution")
+    @Operation(summary = "获取评分分布", description = "获取摊位的评分分布统计")
+    public ResponseEntity<Map<String, Object>> getRatingDistribution(@PathVariable Long stallId) {
+        try {
+            Map<String, Object> distribution = reviewService.getRatingDistribution(stallId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", distribution);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting rating distribution: {}", e.getMessage());
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", e.getMessage());

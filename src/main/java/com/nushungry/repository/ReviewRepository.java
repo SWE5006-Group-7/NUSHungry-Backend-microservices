@@ -1,6 +1,5 @@
 package com.nushungry.repository;
 
-import com.nushungry.model.ModerationStatus;
 import com.nushungry.model.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -103,33 +102,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
      */
     List<Review> findTop10ByUserIdOrderByCreatedAtDesc(Long userId);
 
-    // ==================== 审核相关查询 ====================
-
-    /**
-     * 根据审核状态分页查询评价
-     */
-    Page<Review> findByModerationStatus(ModerationStatus moderationStatus, Pageable pageable);
-
-    /**
-     * 统计不同审核状态的评价数量
-     */
-    long countByModerationStatus(ModerationStatus moderationStatus);
-
-    /**
-     * 查询指定时间范围内待审核的评价
-     */
-    Page<Review> findByModerationStatusAndCreatedAtBetween(
-            ModerationStatus moderationStatus,
-            LocalDateTime start,
-            LocalDateTime end,
-            Pageable pageable
-    );
-
-    /**
-     * 获取最新的待审核评价
-     */
-    List<Review> findTop10ByModerationStatusOrderByCreatedAtDesc(ModerationStatus moderationStatus);
-
     // ==================== 管理员查询 ====================
 
     /**
@@ -152,4 +124,20 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
      */
     @Query("SELECT AVG(r.rating) FROM Review r")
     Double findAverageRating();
+
+    /**
+     * 统计摊位各评分的数量（评分分布）
+     */
+    @Query("SELECT r.rating, COUNT(r) FROM Review r WHERE r.stall.id = :stallId GROUP BY r.rating")
+    List<Object[]> getRatingDistributionByStallId(@Param("stallId") Long stallId);
+
+    /**
+     * 根据摊位ID和排序方式查找评价
+     */
+    @Query("SELECT r FROM Review r WHERE r.stall.id = :stallId ORDER BY " +
+           "CASE WHEN :sortBy = 'likesCount' THEN r.likesCount END DESC, " +
+           "CASE WHEN :sortBy = 'createdAt' THEN r.createdAt END DESC")
+    Page<Review> findByStallIdWithSort(@Param("stallId") Long stallId,
+                                        @Param("sortBy") String sortBy,
+                                        Pageable pageable);
 }
