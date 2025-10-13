@@ -64,9 +64,10 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Generate Access Token with userId claim
+        // Generate Access Token with userId and role claims
         java.util.Map<String, Object> claims = new java.util.HashMap<>();
         claims.put("userId", savedUser.getId());
+        claims.put("role", savedUser.getRole().getValue());
         String accessToken = jwtUtil.generateAccessToken(savedUser.getUsername(), claims);
 
         // Generate Refresh Token
@@ -80,6 +81,7 @@ public class UserService {
         response.setUsername(savedUser.getUsername());
         response.setEmail(savedUser.getEmail());
         response.setAvatarUrl(savedUser.getAvatarUrl());
+        response.setRole(savedUser.getRole().getValue());
 
         return response;
     }
@@ -100,9 +102,10 @@ public class UserService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Generate Access Token with userId claim
+        // Generate Access Token with userId and role claims
         java.util.Map<String, Object> claims = new java.util.HashMap<>();
         claims.put("userId", user.getId());
+        claims.put("role", user.getRole().getValue());
         String accessToken = jwtUtil.generateAccessToken(user.getUsername(), claims);
 
         // Generate Refresh Token
@@ -116,6 +119,7 @@ public class UserService {
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setAvatarUrl(user.getAvatarUrl());
+        response.setRole(user.getRole().getValue());
 
         return response;
     }
