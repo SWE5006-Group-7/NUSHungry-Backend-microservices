@@ -36,6 +36,12 @@ public class Review {
     @Column(name = "likes_count", columnDefinition = "integer default 0")
     private Integer likesCount = 0; // 点赞数量
 
+    @Column(name = "total_cost")
+    private Double totalCost; // 总花费（可选）
+
+    @Column(name = "number_of_people")
+    private Integer numberOfPeople; // 用餐人数（可选）
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

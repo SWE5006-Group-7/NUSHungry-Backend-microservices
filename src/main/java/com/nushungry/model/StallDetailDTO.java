@@ -14,6 +14,9 @@ public class StallDetailDTO {
     private Double latitude;  // Stall自己的坐标
     private Double longitude;
     private CafeteriaBasicDTO cafeteria;  // Cafeteria完整信息(包含坐标)
+    private Double averageRating;  // 平均评分
+    private Integer reviewCount;  // 评价数量
+    private Double averagePrice;  // 人均价格
     private List<Review> reviews;
     private List<Image> images;
 
@@ -79,6 +82,12 @@ public class StallDetailDTO {
     public void setLongitude(Double longitude) { this.longitude = longitude; }
     public CafeteriaBasicDTO getCafeteria() { return cafeteria; }
     public void setCafeteria(CafeteriaBasicDTO cafeteria) { this.cafeteria = cafeteria; }
+    public Double getAverageRating() { return averageRating; }
+    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+    public Integer getReviewCount() { return reviewCount; }
+    public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
+    public Double getAveragePrice() { return averagePrice; }
+    public void setAveragePrice(Double averagePrice) { this.averagePrice = averagePrice; }
     public List<Review> getReviews() { return reviews; }
     public void setReviews(List<Review> reviews) { this.reviews = reviews; }
     public List<Image> getImages() { return images; }

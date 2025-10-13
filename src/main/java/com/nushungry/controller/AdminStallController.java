@@ -53,6 +53,14 @@ public class AdminStallController {
             stall.setHalalInfo((String) requestBody.get("halalInfo"));
             stall.setContact((String) requestBody.get("contact"));
             stall.setImageUrl((String) requestBody.get("imageUrl"));
+            
+            // 设置坐标信息
+            if (requestBody.containsKey("latitude") && requestBody.get("latitude") != null) {
+                stall.setLatitude(Double.parseDouble(requestBody.get("latitude").toString()));
+            }
+            if (requestBody.containsKey("longitude") && requestBody.get("longitude") != null) {
+                stall.setLongitude(Double.parseDouble(requestBody.get("longitude").toString()));
+            }
 
             // 关联食堂
             Long cafeteriaId = requestBody.get("cafeteriaId") != null
@@ -137,6 +145,16 @@ public class AdminStallController {
             }
             if (requestBody.containsKey("imageUrl")) {
                 stall.setImageUrl((String) requestBody.get("imageUrl"));
+            }
+            
+            // 更新坐标信息
+            if (requestBody.containsKey("latitude")) {
+                Object lat = requestBody.get("latitude");
+                stall.setLatitude(lat != null ? Double.parseDouble(lat.toString()) : null);
+            }
+            if (requestBody.containsKey("longitude")) {
+                Object lon = requestBody.get("longitude");
+                stall.setLongitude(lon != null ? Double.parseDouble(lon.toString()) : null);
             }
 
             // 更新食堂关联
@@ -392,6 +410,8 @@ public class AdminStallController {
         stallData.put("halalInfo", stall.getHalalInfo());
         stallData.put("contact", stall.getContact());
         stallData.put("imageUrl", stall.getImageUrl());
+        stallData.put("latitude", stall.getLatitude());
+        stallData.put("longitude", stall.getLongitude());
         stallData.put("averageRating", stall.getAverageRating());
         stallData.put("reviewCount", stall.getReviewCount());
         stallData.put("createdAt", stall.getCreatedAt());

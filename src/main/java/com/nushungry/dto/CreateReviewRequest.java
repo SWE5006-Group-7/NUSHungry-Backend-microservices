@@ -25,4 +25,10 @@ public class CreateReviewRequest {
 
     @Size(max = 9, message = "最多只能上传9张图片")
     private List<String> imageUrls = new ArrayList<>();
+
+    @DecimalMin(value = "0.01", message = "总花费必须大于0")
+    private Double totalCost; // 总花费（可选）
+
+    @Min(value = 1, message = "用餐人数必须至少为1")
+    private Integer numberOfPeople; // 用餐人数（可选）
 }

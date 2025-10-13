@@ -52,6 +52,7 @@ public class StallController {
             stallData.put("contact", stall.getContact());
             stallData.put("averageRating", stall.getAverageRating());
             stallData.put("reviewCount", stall.getReviewCount());
+            stallData.put("averagePrice", stall.getAveragePrice());
 
             // 添加stall自己的坐标
             stallData.put("latitude", stall.getLatitude());
@@ -146,6 +147,7 @@ public class StallController {
                 stallData.put("contact", stall.getContact());
                 stallData.put("averageRating", stall.getAverageRating());
                 stallData.put("reviewCount", stall.getReviewCount());
+                stallData.put("averagePrice", stall.getAveragePrice());
 
                 // 添加stall自己的坐标
                 stallData.put("latitude", stall.getLatitude());
@@ -217,6 +219,11 @@ public class StallController {
                     // 设置stall自己的坐标
                     dto.setLatitude(stall.getLatitude());
                     dto.setLongitude(stall.getLongitude());
+                    
+                    // 设置评分和价格信息
+                    dto.setAverageRating(stall.getAverageRating());
+                    dto.setReviewCount(stall.getReviewCount());
+                    dto.setAveragePrice(stall.getAveragePrice());
 
                     // 设置 cafeteria 的完整信息,包含坐标
                     if (stall.getCafeteria() != null) {

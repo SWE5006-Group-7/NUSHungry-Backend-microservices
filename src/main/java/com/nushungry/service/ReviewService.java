@@ -39,6 +39,9 @@ public class ReviewService {
     private RatingCalculationService ratingCalculationService;
 
     @Autowired
+    private PriceCalculationService priceCalculationService;
+
+    @Autowired
     private ReviewLikeService reviewLikeService;
 
     /**
@@ -69,11 +72,16 @@ public class ReviewService {
         review.setRating(request.getRating());
         review.setComment(request.getComment());
         review.setImageUrls(request.getImageUrls());
+        review.setTotalCost(request.getTotalCost());
+        review.setNumberOfPeople(request.getNumberOfPeople());
 
         review = reviewRepository.save(review);
 
         // 重新计算摊位评分
         ratingCalculationService.recalculateStallRating(request.getStallId());
+        
+        // 重新计算摊位人均价格
+        priceCalculationService.recalculateStallAveragePrice(request.getStallId());
 
         log.info("Review created successfully: {}", review.getId());
         return convertToResponse(review, userId);
@@ -100,11 +108,16 @@ public class ReviewService {
         if (request.getImageUrls() != null) {
             review.setImageUrls(request.getImageUrls());
         }
+        review.setTotalCost(request.getTotalCost());
+        review.setNumberOfPeople(request.getNumberOfPeople());
 
         review = reviewRepository.save(review);
 
         // 重新计算摊位评分
         ratingCalculationService.recalculateStallRating(review.getStall().getId());
+        
+        // 重新计算摊位人均价格
+        priceCalculationService.recalculateStallAveragePrice(review.getStall().getId());
 
         log.info("Review updated successfully: {}", reviewId);
         return convertToResponse(review, userId);
@@ -130,6 +143,9 @@ public class ReviewService {
 
         // 重新计算摊位评分
         ratingCalculationService.recalculateStallRating(stallId);
+        
+        // 重新计算摊位人均价格
+        priceCalculationService.recalculateStallAveragePrice(stallId);
 
         log.info("Review deleted successfully: {}", reviewId);
     }
@@ -193,6 +209,8 @@ public class ReviewService {
         response.setRating(review.getRating());
         response.setComment(review.getComment());
         response.setImageUrls(review.getImageUrls());
+        response.setTotalCost(review.getTotalCost());
+        response.setNumberOfPeople(review.getNumberOfPeople());
         response.setCreatedAt(review.getCreatedAt());
         response.setUpdatedAt(review.getUpdatedAt());
 
@@ -314,6 +332,9 @@ public class ReviewService {
 
         // 重新计算摊位评分
         ratingCalculationService.recalculateStallRating(stallId);
+        
+        // 重新计算摊位人均价格
+        priceCalculationService.recalculateStallAveragePrice(stallId);
 
         log.info("Review deleted by admin successfully: {}", reviewId);
     }
