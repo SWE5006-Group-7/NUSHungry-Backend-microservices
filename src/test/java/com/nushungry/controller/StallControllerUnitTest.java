@@ -6,15 +6,12 @@ import com.nushungry.service.StallService;
 import com.nushungry.service.ImageService;
 import com.nushungry.util.JwtUtil;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -26,9 +23,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class)
-@WebMvcTest(StallController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@WebMvcTest(value = StallController.class, excludeAutoConfiguration = {org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class})
 class StallControllerUnitTest {
 
     @Autowired
@@ -102,15 +97,37 @@ class StallControllerUnitTest {
 
     @Test
     void givenValidStall_whenCreate_thenReturnCreatedStall() throws Exception {
-        Stall stall = new Stall();
-        stall.setId(1L);
-        stall.setName("New Stall");
+        // 使用DTO创建请求数据，避免JPA实体序列化问题
+        StallCreateDTO requestDTO = new StallCreateDTO();
+        requestDTO.setId(1L);
+        requestDTO.setName("New Stall");
+        requestDTO.setCuisineType("Chinese");
+        requestDTO.setHalalInfo("Halal");
+        requestDTO.setContact("12345678");
+        requestDTO.setAverageRating(4.5);
+        requestDTO.setReviewCount(10);
+        requestDTO.setAveragePrice(10.0);
+        requestDTO.setLatitude(1.3521);
+        requestDTO.setLongitude(103.8198);
 
-        when(stallService.save(any(Stall.class))).thenReturn(stall);
+        // 创建模拟的保存后的Stall对象
+        Stall savedStall = new Stall();
+        savedStall.setId(1L);
+        savedStall.setName("New Stall");
+        savedStall.setCuisineType("Chinese");
+        savedStall.setHalalInfo("Halal");
+        savedStall.setContact("12345678");
+        savedStall.setAverageRating(4.5);
+        savedStall.setReviewCount(10);
+        savedStall.setAveragePrice(10.0);
+        savedStall.setLatitude(1.3521);
+        savedStall.setLongitude(103.8198);
+
+        when(stallService.save(any(Stall.class))).thenReturn(savedStall);
 
         mockMvc.perform(post("/api/stalls")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(stall)))
+                        .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("New Stall"));
 
