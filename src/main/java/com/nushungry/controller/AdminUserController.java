@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Tag(name = "Admin User Management", description = "管理员用户管理接口")
 @SecurityRequirement(name = "Bearer Authentication")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 public class AdminUserController {
 
     private final UserRepository userRepository;
@@ -132,9 +132,165 @@ public class AdminUserController {
     }
 
     /**
+     * 创建新用户
+     */
+    @PostMapping
+    @Operation(summary = "创建用户", description = "管理员创建新用户")
+    public ResponseEntity<?> createUser(@RequestBody Map<String, Object> request) {
+        try {
+            String username = (String) request.get("username");
+            String email = (String) request.get("email");
+            String password = (String) request.get("password");
+            String roleStr = (String) request.get("role");
+            Boolean enabled = request.get("enabled") != null ? (Boolean) request.get("enabled") : true;
+
+            // 参数验证
+            if (username == null || username.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "用户名不能为空"));
+            }
+            if (email == null || email.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "邮箱不能为空"));
+            }
+            if (password == null || password.length() < 6) {
+                return ResponseEntity.badRequest().body(Map.of("error", "密码长度至少6位"));
+            }
+
+            // 检查用户名/邮箱是否已存在
+            if (userRepository.existsByUsername(username)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "用户名已存在"));
+            }
+            if (userRepository.existsByEmail(email)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "邮箱已被注册"));
+            }
+
+            // 解析角色
+            UserRole role = UserRole.ROLE_USER;
+            if (roleStr != null && !roleStr.trim().isEmpty()) {
+                try {
+                    role = UserRole.valueOf(roleStr);
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "无效的角色: " + roleStr));
+                }
+            }
+
+            // 创建用户
+            User newUser = new User();
+            newUser.setUsername(username);
+            newUser.setEmail(email);
+            newUser.setPassword(passwordEncoder.encode(password));
+            newUser.setRole(role);
+            newUser.setEnabled(enabled);
+            newUser.setCreatedAt(LocalDateTime.now());
+            newUser.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(newUser);
+
+            User currentUser = userService.getCurrentUser();
+            log.info("User created - Username: {}, Role: {}, By: {}", username, role, currentUser.getUsername());
+
+            return ResponseEntity.ok(Map.of("message", "用户创建成功", "user", userToDTO(newUser)));
+        } catch (Exception e) {
+            log.error("Error creating user", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "创建用户失败"));
+        }
+    }
+
+    /**
+     * 更新用户信息
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "更新用户", description = "更新用户的基本信息、角色和状态")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        try {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "用户不存在"));
+            }
+
+            User user = userOpt.get();
+            User currentUser = userService.getCurrentUser();
+
+            // 更新用户名
+            String username = (String) request.get("username");
+            if (username != null && !username.trim().isEmpty()) {
+                if (!username.equals(user.getUsername()) && userRepository.existsByUsername(username)) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "用户名已存在"));
+                }
+                user.setUsername(username);
+            }
+
+            // 更新邮箱
+            String email = (String) request.get("email");
+            if (email != null && !email.trim().isEmpty()) {
+                if (!email.equals(user.getEmail()) && userRepository.existsByEmail(email)) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "邮箱已被注册"));
+                }
+                user.setEmail(email);
+            }
+
+            // 更新角色
+            String roleStr = (String) request.get("role");
+            if (roleStr != null && !roleStr.trim().isEmpty()) {
+                if (currentUser.getId().equals(id)) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "不能修改自己的角色"));
+                }
+                try {
+                    user.setRole(UserRole.valueOf(roleStr));
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "无效的角色: " + roleStr));
+                }
+            }
+
+            // 更新状态
+            Boolean enabled = request.get("enabled") != null ? (Boolean) request.get("enabled") : null;
+            if (enabled != null) {
+                if (currentUser.getId().equals(id) && !enabled) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "不能禁用自己的账户"));
+                }
+                user.setEnabled(enabled);
+            }
+
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+            log.info("User updated - ID: {}, Username: {}, By: {}", id, user.getUsername(), currentUser.getUsername());
+
+            return ResponseEntity.ok(Map.of("message", "用户更新成功", "user", userToDTO(user)));
+        } catch (Exception e) {
+            log.error("Error updating user with id: " + id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "更新用户失败"));
+        }
+    }
+
+    /**
+     * 删除用户
+     */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除用户", description = "删除指定用户")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        try {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "用户不存在"));
+            }
+
+            User currentUser = userService.getCurrentUser();
+            if (currentUser.getId().equals(id)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "不能删除自己的账户"));
+            }
+
+            userRepository.deleteById(id);
+            log.info("User deleted - ID: {}, By: {}", id, currentUser.getUsername());
+
+            return ResponseEntity.ok(Map.of("message", "用户删除成功"));
+        } catch (Exception e) {
+            log.error("Error deleting user with id: " + id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "删除用户失败"));
+        }
+    }
+
+    /**
      * 冻结/解冻账户
      */
-    @PutMapping("/{id}/status")
+    @PatchMapping("/{id}/status")
     @Operation(summary = "更新用户状态", description = "冻结或解冻用户账户")
     public ResponseEntity<?> updateUserStatus(
             @PathVariable Long id,

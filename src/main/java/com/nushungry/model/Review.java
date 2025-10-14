@@ -33,6 +33,15 @@ public class Review {
     @Column(columnDefinition = "boolean default false")
     private boolean processed = false; // For tracking if a complaint/low rating has been handled
 
+    @Column(name = "likes_count", columnDefinition = "integer default 0")
+    private Integer likesCount = 0; // 点赞数量
+
+    @Column(name = "total_cost")
+    private Double totalCost; // 总花费（可选）
+
+    @Column(name = "number_of_people")
+    private Integer numberOfPeople; // 用餐人数（可选）
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -45,7 +54,7 @@ public class Review {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "stall_id", nullable = false)
-    @JsonBackReference
+    @JsonIgnoreProperties({"reviews", "hibernateLazyInitializer", "handler"})
     private Stall stall;
 
     @PrePersist

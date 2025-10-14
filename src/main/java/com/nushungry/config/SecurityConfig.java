@@ -32,7 +32,14 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                    corsConfig.setAllowedOrigins(java.util.Arrays.asList("http://localhost:5173", "http://localhost:5174", "http://localhost:5175"));
+                    // 使用通配符模式，允许任何端口的 localhost 和任何 IP 地址访问
+                    corsConfig.setAllowedOriginPatterns(java.util.Arrays.asList(
+                        "http://localhost:*",
+                        "http://127.0.0.1:*",
+                        "http://*:5173",
+                        "http://*:5174",
+                        "http://*:5175"
+                    ));
                     corsConfig.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     corsConfig.setAllowedHeaders(java.util.Arrays.asList("*"));
                     corsConfig.setExposedHeaders(java.util.Arrays.asList("Authorization"));
@@ -46,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/admin/auth/**",
+                                "/api/password/**",     // 允许访问密码重置接口
                                 "/api/cafeterias/**",
                                 "/api/stalls/**",
                                 "/api/images/**",
@@ -57,6 +65,11 @@ public class SecurityConfig {
                         // 评价接口：GET 请求允许匿名访问，其他需要认证
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/reviews/**").permitAll()
                         .requestMatchers("/api/reviews/**").authenticated()
+                        // 搜索历史接口：GET请求允许匿名访问（未登录返回空），其他需要认证
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/search-history/**").permitAll()
+                        .requestMatchers("/api/search-history/**").authenticated()
+                        // 收藏接口：GET请求允许匿名访问（检查收藏状态），其他需要认证
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/favorites/**").permitAll()
                         .requestMatchers("/api/favorites/**").authenticated()
                         .anyRequest().authenticated()
                 )

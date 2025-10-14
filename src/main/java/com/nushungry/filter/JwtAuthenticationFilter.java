@@ -61,25 +61,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String username = null;
         String jwt = null;
 
+        logger.info("Processing request: " + method + " " + requestPath);
+        logger.info("Authorization header: " + (authorizationHeader != null ? "Present" : "Missing"));
+
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
             try {
                 username = jwtUtil.extractUsername(jwt);
+                logger.info("Extracted username from token: " + username);
             } catch (Exception e) {
                 // Invalid token
-                logger.error("JWT token validation error: " + e.getMessage());
+                logger.error("JWT token validation error: " + e.getMessage(), e);
             }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            try {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                logger.info("Loaded user details for: " + username);
 
-            if (jwtUtil.validateToken(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                if (jwtUtil.validateToken(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authenticationToken =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                    logger.info("Authentication successful for user: " + username);
+                } else {
+                    logger.warn("Token validation failed for user: " + username);
+                }
+            } catch (Exception e) {
+                logger.error("Error loading user details: " + e.getMessage(), e);
             }
+        } else if (username == null) {
+            logger.warn("No username extracted from token");
         }
         chain.doFilter(request, response);
     }

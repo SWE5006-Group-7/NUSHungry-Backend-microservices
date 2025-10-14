@@ -4,6 +4,7 @@ import com.nushungry.dto.DashboardStatsDTO;
 import com.nushungry.model.Review;
 import com.nushungry.model.Stall;
 import com.nushungry.model.User;
+import com.nushungry.repository.CafeteriaRepository;
 import com.nushungry.repository.ReviewRepository;
 import com.nushungry.repository.StallRepository;
 import com.nushungry.repository.UserRepository;
@@ -29,6 +30,7 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final StallRepository stallRepository;
     private final ReviewRepository reviewRepository;
+    private final CafeteriaRepository cafeteriaRepository;
 
     // 系统启动时间（假设系统从30天前开始运行）
     private static final LocalDateTime SYSTEM_START_TIME = LocalDateTime.now().minusDays(30);
@@ -46,6 +48,7 @@ public class DashboardService {
     private DashboardStatsDTO.StatsCards getStatsCards() {
         // 获取总数
         long totalUsers = userRepository.count();
+        long totalCafeterias = cafeteriaRepository.count();
         long totalStalls = stallRepository.count();
         long totalReviews = reviewRepository.count();
 
@@ -66,6 +69,8 @@ public class DashboardService {
         return DashboardStatsDTO.StatsCards.builder()
                 .totalUsers((int) totalUsers)
                 .userTrend(calculateTrend(totalUsers, yesterdayUsers))
+                .totalCafeterias((int) totalCafeterias)
+                .cafeteriaTrend(0.0) // Cafeteria没有createdAt字段,暂时设为0
                 .totalStalls((int) totalStalls)
                 .stallTrend(calculateTrend(totalStalls, yesterdayStalls))
                 .totalReviews((int) totalReviews)
@@ -106,21 +111,30 @@ public class DashboardService {
     }
 
     private List<DashboardStatsDTO.UserGrowthData> getUserGrowthData() {
+        // 默认返回最近7天的数据
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(6);
+        return getUserGrowthData(startDate, endDate);
+    }
+
+    public List<DashboardStatsDTO.UserGrowthData> getUserGrowthData(LocalDate startDate, LocalDate endDate) {
         List<DashboardStatsDTO.UserGrowthData> growthData = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        // 获取最近7天的用户增长数据
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            LocalDateTime startOfDay = date.atStartOfDay();
-            LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+        // 遍历日期范围,统计每天的新增用户数
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            LocalDateTime startOfDay = currentDate.atStartOfDay();
+            LocalDateTime endOfDay = currentDate.plusDays(1).atStartOfDay();
 
             long count = userRepository.countByCreatedAtBetween(startOfDay, endOfDay);
 
             growthData.add(DashboardStatsDTO.UserGrowthData.builder()
-                    .date(date.format(formatter))
+                    .date(currentDate.format(formatter))
                     .count((int) count)
                     .build());
+
+            currentDate = currentDate.plusDays(1);
         }
 
         return growthData;
@@ -134,6 +148,8 @@ public class DashboardService {
                         .id(user.getId())
                         .username(user.getUsername())
                         .email(user.getEmail())
+                        .role(user.getRole().getValue())
+                        .avatarUrl(user.getAvatarUrl())
                         .enabled(user.isEnabled())
                         .createdAt(user.getCreatedAt())
                         .build())

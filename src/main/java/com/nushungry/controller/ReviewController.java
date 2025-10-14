@@ -3,8 +3,12 @@ package com.nushungry.controller;
 import com.nushungry.dto.CreateReviewRequest;
 import com.nushungry.dto.ReviewResponse;
 import com.nushungry.dto.UpdateReviewRequest;
+import com.nushungry.dto.CreateReportRequest;
+import com.nushungry.dto.ReportResponse;
 import com.nushungry.model.User;
 import com.nushungry.service.ReviewService;
+import com.nushungry.service.ReviewLikeService;
+import com.nushungry.service.ReviewReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -38,6 +42,8 @@ import java.util.Map;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final ReviewLikeService reviewLikeService;
+    private final ReviewReportService reviewReportService;
 
     /**
      * 创建评价
@@ -159,6 +165,7 @@ public class ReviewController {
             @PathVariable Long stallId,
             @Parameter(description = "页码（从0开始）") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "排序方式 (createdAt, likesCount)") @RequestParam(required = false) String sortBy,
             Authentication authentication) {
 
         try {
@@ -175,9 +182,15 @@ public class ReviewController {
 
                 return ResponseEntity.ok(response);
             } else {
-                // 分页返回
+                // 分页返回（支持排序）
                 Pageable pageable = PageRequest.of(page, size);
-                Page<ReviewResponse> reviewsPage = reviewService.getReviewsByStallId(stallId, pageable, currentUserId);
+                Page<ReviewResponse> reviewsPage;
+
+                if (sortBy != null && !sortBy.isEmpty()) {
+                    reviewsPage = reviewService.getReviewsByStallIdWithSort(stallId, pageable, sortBy, currentUserId);
+                } else {
+                    reviewsPage = reviewService.getReviewsByStallId(stallId, pageable, currentUserId);
+                }
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
@@ -191,6 +204,29 @@ public class ReviewController {
             }
         } catch (Exception e) {
             log.error("Error getting stall reviews: {}", e.getMessage());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 获取摊位的评分分布
+     */
+    @GetMapping("/stall/{stallId}/rating-distribution")
+    @Operation(summary = "获取评分分布", description = "获取摊位的评分分布统计")
+    public ResponseEntity<Map<String, Object>> getRatingDistribution(@PathVariable Long stallId) {
+        try {
+            Map<String, Object> distribution = reviewService.getRatingDistribution(stallId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", distribution);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting rating distribution: {}", e.getMessage());
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", e.getMessage());
@@ -239,6 +275,63 @@ public class ReviewController {
             }
         } catch (Exception e) {
             log.error("Error getting user reviews: {}", e.getMessage());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 点赞评价（切换点赞状态）
+     */
+    @PostMapping("/{id}/like")
+    @Operation(summary = "点赞评价", description = "切换评价的点赞状态（已点赞则取消，未点赞则点赞）")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<Map<String, Object>> toggleLike(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+
+        try {
+            boolean liked = reviewLikeService.toggleLike(id, currentUser.getId());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", liked ? "点赞成功" : "取消点赞成功");
+            response.put("liked", liked);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error toggling like: {}", e.getMessage());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 举报评价
+     */
+    @PostMapping("/{id}/report")
+    @Operation(summary = "举报评价", description = "举报不当评价内容")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<Map<String, Object>> reportReview(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateReportRequest request,
+            @AuthenticationPrincipal User currentUser) {
+
+        try {
+            ReportResponse report = reviewReportService.createReport(id, currentUser.getId(), request);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "举报提交成功，我们会尽快处理");
+            response.put("data", report);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            log.error("Error reporting review: {}", e.getMessage());
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", e.getMessage());

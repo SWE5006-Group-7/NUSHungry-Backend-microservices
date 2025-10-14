@@ -50,6 +50,15 @@ public class Stall {
     @Column(name = "review_count")
     private Integer reviewCount = 0; // 评价数量
 
+    @Column(name = "average_price")
+    private Double averagePrice = 0.0; // 人均价格
+
+    @Column(name = "latitude")
+    private Double latitude; // 摊位纬度(可选,如果为null则使用cafeteria的坐标)
+
+    @Column(name = "longitude")
+    private Double longitude; // 摊位经度(可选,如果为null则使用cafeteria的坐标)
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

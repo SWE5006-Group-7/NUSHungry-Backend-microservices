@@ -44,6 +44,12 @@ public class DashboardStatsDTO {
         @Schema(description = "用户增长趋势百分比")
         private Double userTrend;
 
+        @Schema(description = "总食堂数")
+        private Integer totalCafeterias;
+
+        @Schema(description = "食堂增长趋势百分比")
+        private Double cafeteriaTrend;
+
         @Schema(description = "总摊位数")
         private Integer totalStalls;
 
@@ -118,6 +124,12 @@ public class DashboardStatsDTO {
 
         @Schema(description = "邮箱")
         private String email;
+
+        @Schema(description = "用户角色")
+        private String role;
+
+        @Schema(description = "头像URL")
+        private String avatarUrl;
 
         @Schema(description = "是否启用")
         private Boolean enabled;
