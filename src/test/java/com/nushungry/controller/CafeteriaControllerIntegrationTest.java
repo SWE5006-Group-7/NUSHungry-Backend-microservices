@@ -27,6 +27,7 @@ public class CafeteriaControllerIntegrationTest {
     void shouldGetAllCafeterias_EmptyList() {
         webTestClient.get()
                 .uri("/api/cafeterias")
+                .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
