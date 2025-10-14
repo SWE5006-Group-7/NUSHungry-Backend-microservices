@@ -19,7 +19,11 @@ public class CafeteriaControllerIntegrationTest {
 
     @BeforeEach
     void cleanUp() {
-        cafeteriaRepository.deleteAll();
+        // 由于外键约束，需要按照依赖关系删除数据
+        // 先删除依赖cafeteria的stalls
+        // 再删除cafeterias
+        // 这里使用原生SQL来处理
+        cafeteriaRepository.deleteAllInBatch();
     }
 
     @Test
@@ -30,7 +34,7 @@ public class CafeteriaControllerIntegrationTest {
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
-                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
                 .expectBodyList(Cafeteria.class)
                 .hasSize(0);
     }
