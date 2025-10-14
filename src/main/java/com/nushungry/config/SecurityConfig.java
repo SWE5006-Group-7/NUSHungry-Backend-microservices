@@ -32,7 +32,14 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                    corsConfig.setAllowedOrigins(java.util.Arrays.asList("http://localhost:5173", "http://localhost:5174", "http://localhost:5175"));
+                    // 使用通配符模式，允许任何端口的 localhost 和任何 IP 地址访问
+                    corsConfig.setAllowedOriginPatterns(java.util.Arrays.asList(
+                        "http://localhost:*",
+                        "http://127.0.0.1:*",
+                        "http://*:5173",
+                        "http://*:5174",
+                        "http://*:5175"
+                    ));
                     corsConfig.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     corsConfig.setAllowedHeaders(java.util.Arrays.asList("*"));
                     corsConfig.setExposedHeaders(java.util.Arrays.asList("Authorization"));

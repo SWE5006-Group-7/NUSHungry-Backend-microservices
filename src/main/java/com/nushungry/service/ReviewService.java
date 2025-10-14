@@ -9,6 +9,8 @@ import com.nushungry.model.User;
 import com.nushungry.repository.ReviewRepository;
 import com.nushungry.repository.StallRepository;
 import com.nushungry.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -43,6 +45,9 @@ public class ReviewService {
 
     @Autowired
     private ReviewLikeService reviewLikeService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /**
      * 创建评价
@@ -328,6 +333,43 @@ public class ReviewService {
                 .orElseThrow(() -> new RuntimeException("评价不存在"));
 
         Long stallId = review.getStall().getId();
+        
+        // 先删除所有相关表的记录，避免外键约束问题
+        try {
+            // 1. 删除 moderation_log
+            int deletedLogs = entityManager.createNativeQuery(
+                "DELETE FROM moderation_log WHERE review_id = :reviewId")
+                .setParameter("reviewId", reviewId)
+                .executeUpdate();
+            log.info("Deleted {} moderation_log entries for review {}", deletedLogs, reviewId);
+            
+            // 2. 删除 review_reports (举报记录)
+            int deletedReports = entityManager.createNativeQuery(
+                "DELETE FROM review_reports WHERE review_id = :reviewId")
+                .setParameter("reviewId", reviewId)
+                .executeUpdate();
+            log.info("Deleted {} review_reports entries for review {}", deletedReports, reviewId);
+            
+            // 3. 删除 review_likes (点赞记录)
+            int deletedLikes = entityManager.createNativeQuery(
+                "DELETE FROM review_likes WHERE review_id = :reviewId")
+                .setParameter("reviewId", reviewId)
+                .executeUpdate();
+            log.info("Deleted {} review_likes entries for review {}", deletedLikes, reviewId);
+            
+            // 4. 删除 review_images (评价图片关联)
+            int deletedImages = entityManager.createNativeQuery(
+                "DELETE FROM review_images WHERE review_id = :reviewId")
+                .setParameter("reviewId", reviewId)
+                .executeUpdate();
+            log.info("Deleted {} review_images entries for review {}", deletedImages, reviewId);
+            
+        } catch (Exception e) {
+            log.error("Failed to delete related records for review {}: {}", reviewId, e.getMessage());
+            throw new RuntimeException("删除评价相关记录失败: " + e.getMessage());
+        }
+        
+        // 删除评价
         reviewRepository.delete(review);
 
         // 重新计算摊位评分
