@@ -33,6 +33,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/api/password/**",
                                 "/api/cafeterias/**",
                                 "/api/stalls/**",
                                 "/api/reviews/**",

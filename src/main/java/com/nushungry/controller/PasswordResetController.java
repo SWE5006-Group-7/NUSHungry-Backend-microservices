@@ -1,55 +1,32 @@
 package com.nushungry.controller;
 
-import com.nushungry.dto.AuthResponse;
 import com.nushungry.dto.ForgotPasswordRequest;
-import com.nushungry.dto.LoginRequest;
-import com.nushungry.dto.RegisterRequest;
 import com.nushungry.dto.ResetPasswordRequest;
-import com.nushungry.service.UserService;
+import com.nushungry.dto.VerifyResetCodeRequest;
 import com.nushungry.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/password")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "User authentication endpoints")
-public class AuthController {
+@Tag(name = "Password Reset", description = "Forgot password and verification endpoints")
+public class PasswordResetController {
 
-    private final UserService userService;
     private final PasswordResetService passwordResetService;
 
-    @PostMapping("/register")
-    @Operation(summary = "Register a new user")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
-        try {
-            AuthResponse response = userService.register(request);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @PostMapping("/login")
-    @Operation(summary = "Login user")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = userService.login(request);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(401).build();
-        }
-    }
-
-    @PostMapping("/forgot-password")
-    @Operation(summary = "Send verification code to email for password reset")
-    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    @PostMapping("/send-reset-code")
+    @Operation(summary = "Send verification code to user's email")
+    public ResponseEntity<?> sendResetCode(@RequestBody ForgotPasswordRequest request) {
         if (request == null || !StringUtils.hasText(request.getEmail())) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
@@ -75,8 +52,37 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/reset-password")
-    @Operation(summary = "Verify code and reset password")
+    @PostMapping("/verify-reset-code")
+    @Operation(summary = "Verify a password reset code without changing the password")
+    public ResponseEntity<?> verifyResetCode(@RequestBody VerifyResetCodeRequest request) {
+        if (request == null
+                || !StringUtils.hasText(request.getEmail())
+                || !StringUtils.hasText(request.getCode())) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Email and code are required."
+            ));
+        }
+
+        try {
+            passwordResetService.verifyCode(
+                    request.getEmail().trim(),
+                    request.getCode().trim()
+            );
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Verification code is valid."
+            ));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", ex.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/reset")
+    @Operation(summary = "Reset password after code verification")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         if (request == null
                 || !StringUtils.hasText(request.getEmail())
