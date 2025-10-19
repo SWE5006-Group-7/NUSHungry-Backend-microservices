@@ -2,9 +2,9 @@ name: CI/CD Pipeline to compile, test and build app.
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "feat/complete-backend-cicd" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "feat/complete-backend-cicd" ]
 
 env:
   REGISTRY: ${{ secrets.REGISTRY }}
@@ -12,16 +12,15 @@ env:
   SHA: ${{ github.event.pull_request.head.sha || github.event.after }}
 
 jobs:
-  run-tests:
+  unit-and-integration-tests:
     runs-on: ubuntu-latest
     environment: dev
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-docker-action@v4
       - uses: actions/setup-java@v5
         with:
-          java-version: "17"
-          distribution: "temurin"
+          java-version: '17'
+          distribution: 'temurin'
           cache: maven
 
       - name: Prepare test db
@@ -45,28 +44,37 @@ jobs:
             target/surefire-reports/
             target/site/jacoco/
           retention-days: 7
-  lint-and-sast:
+  sast:
     runs-on: ubuntu-latest
     environment: dev
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
         with:
-          java-version: "17"
-          distribution: "temurin"
+          java-version: '17'
+          distribution: 'temurin'
           cache: maven
-      - name: Static code analysis
+      - name: Check code quality
         run: mvn compile spotbugs:check site -DnvdApiKey=${{ secrets.NVD_API_KEY }}
 
-      - name: Upload static code analysis and linter results
+      - name: Upload SAST results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lint-and-SAST-results
+          name: sast-results
           path: target/site/*.html
-
+  owasp-dependency-check:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
       - name: Dependency scan
-        run: mvn dependency-check:check -DnvdApiKey=${{ secrets.NVD_API_KEY }} -Dossindex.username=chowjss@gmail.com -Dossindex.password=y${{ secrets.OSS_INDEX_TOKEN }} -DfailBuildOnCVSS=11 -Dformats=HTML
+        run: mvn compile dependency-check:check -DnvdApiKey=${{ secrets.NVD_API_KEY }} -Dossindex.username=chowjss@gmail.com -Dossindex.password=y${{ secrets.OSS_INDEX_TOKEN }} -DfailBuildOnCVSS=11 -Dformats=HTML
 
       - name: Upload dependency scan results
         uses: actions/upload-artifact@v4
@@ -74,18 +82,57 @@ jobs:
         with:
           name: owasp-dependency-scan-results
           path: target/dependency-check-report.html
+  check-style:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      - name: Check code style
+        run: mvn compile checkstyle:checkstyle
+      - name: Upload check style results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: check-style-results
+          path: target/reports/checkstyle.html
+  container-scan:
+    environment: dev
+    runs-on: ubuntu-latest
+    needs: ["unit-and-integration-tests", "sast", "owasp-dependency-check","check-style"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: snyk/actions/setup@master
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      - name: Package
+        run: mvn package -DskipTests
+      - name: Build image for scanning
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          docker build -t testimage .
+          docker image ls
+          snyk container test testimage:latest --file=Dockerfile
+
   docker-publish:
-    needs: ["run-tests", "lint-and-sast"]
+    needs: ["container-scan"]
     runs-on: ubuntu-latest
     environment: dev
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-docker-action@v4
       - uses: actions/setup-java@v5
         with:
-          java-version: "17"
-          distribution: "temurin"
+          java-version: '17'
+          distribution: 'temurin'
           cache: maven
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2.5.0
@@ -126,3 +173,16 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+  deploy:
+    needs: docker-publish
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.0.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1
+      - name: Deploy new image version
+        run: aws ecs update-service --cluster nushungry-cluster --service nushungry-service --force-new-deployment
