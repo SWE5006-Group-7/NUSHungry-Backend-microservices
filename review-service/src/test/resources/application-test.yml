@@ -1,0 +1,35 @@
+spring:
+  data:
+    mongodb:
+      # Use embedded MongoDB for testing
+      host: localhost
+      port: 0
+      database: test_nushungry_reviews
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+# Configure embedded MongoDB version
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 6.0.6
+
+logging:
+  level:
+    root: INFO
+    com.nushungry.reviewservice: DEBUG
+
+rabbitmq:
+  exchange:
+    review: test.review.exchange
+  routing-key:
+    rating-changed: test.review.rating.changed
+    price-changed: test.review.price.changed
+  queue:
+    rating: test.review.rating.queue
+    price: test.review.price.queue
