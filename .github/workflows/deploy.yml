@@ -1,5 +1,9 @@
 name: Manual Deploy
 on:
+  push:
+    branches: [ "feat/complete-backend-cicd" ]
+  pull_request:
+    branches: [ "feat/complete-backend-cicd" ]
   workflow_dispatch:
     inputs:
       image_tag:
