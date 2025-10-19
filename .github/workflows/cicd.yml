@@ -1,4 +1,4 @@
-name: CI/CD Pipeline to run tests, build docker image and publish.
+name: CI/CD Pipeline for NUSHungry backend
 
 on:
   push:
@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "feat/complete-backend-cicd" ]
 
+permissions:
+  issues: write
+  contents: read
 env:
   REGISTRY: ${{ secrets.REGISTRY }}
   IMAGE_NAME: nushungry/monolith-backend
@@ -175,15 +178,16 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   deploy:
-    needs: ["docker-publish"]
+    needs: docker-publish
     runs-on: ubuntu-latest
     environment: prod
     steps:
       - name: Require manual approval
         uses: trstringer/manual-approval@v1
+        timeout-minutes: 5
         with:
           secret: ${{ github.TOKEN }}
-          approvers: chowjss-spec
+          approvers: chowjss-spec,1zero,Alex6747,NagiicivA,wlyIris
           minimum-approvals: 1
           issue-title: "Deploying to prod environment"
           issue-body: "Please review the test artefacts, and approve or deny the deployment."
