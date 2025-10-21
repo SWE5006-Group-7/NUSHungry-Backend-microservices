@@ -7,10 +7,18 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Global Exception Handler for Review Service
+ *
+ * Handles application-specific exceptions and provides consistent error responses.
+ * Note: Does NOT handle NoResourceFoundException to avoid interfering with Spring Boot's
+ * default handling of static resources and actuator endpoints.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -48,8 +56,19 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Validation failed", errors));
     }
 
+    /**
+     * Handle all other unexpected exceptions
+     *
+     * Note: NoResourceFoundException is intentionally NOT handled here to allow
+     * Spring Boot's default error handling for static resources and actuator endpoints.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
+        // Skip handling NoResourceFoundException - let Spring Boot handle it
+        if (ex instanceof NoResourceFoundException) {
+            throw (NoResourceFoundException) ex;
+        }
+
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("An unexpected error occurred: " + ex.getMessage()));

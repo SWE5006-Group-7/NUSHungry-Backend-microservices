@@ -24,6 +24,40 @@ check_docker_compose() {
     fi
 }
 
+# 等待服务健康检查通过
+# 参数: $1 = 服务名称, $2 = 健康检查URL, $3 = 最大等待时间(秒)
+wait_for_healthy() {
+    local service_name=$1
+    local health_url=$2
+    local max_wait=${3:-120}
+    local elapsed=0
+    local interval=5
+
+    echo -e "${YELLOW}⏳ 等待 $service_name 就绪...${NC}"
+
+    while [ $elapsed -lt $max_wait ]; do
+        # 检查容器是否运行
+        if ! docker compose ps $service_name | grep -q "Up"; then
+            echo -e "${RED}❌ $service_name 容器未运行${NC}"
+            return 1
+        fi
+
+        # 检查健康状态
+        if curl -sf "$health_url" > /dev/null 2>&1; then
+            echo -e "${GREEN}✅ $service_name 已就绪 (耗时: ${elapsed}秒)${NC}"
+            return 0
+        fi
+
+        echo -e "${BLUE}⏳ $service_name 尚未就绪，继续等待... (${elapsed}/${max_wait}秒)${NC}"
+        sleep $interval
+        elapsed=$((elapsed + interval))
+    done
+
+    echo -e "${RED}❌ $service_name 启动超时 (超过 ${max_wait}秒)${NC}"
+    echo -e "${YELLOW}提示: 可以使用 'docker compose logs $service_name' 查看日志${NC}"
+    return 1
+}
+
 echo "=========================================="
 echo -e "${BLUE}启动 NUSHungry 微服务架构${NC}"
 echo "=========================================="
@@ -73,10 +107,22 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 等待配置中心就绪
+# 等待配置中心就绪（使用健康检查）
 echo ""
-echo -e "${YELLOW}⏳ 等待配置中心启动...${NC}"
-sleep 15
+if ! wait_for_healthy "config-server" "http://localhost:8888/actuator/health" 120; then
+    echo -e "${RED}❌ Config Server 启动失败或超时${NC}"
+    echo -e "${YELLOW}查看日志: docker compose logs config-server${NC}"
+    exit 1
+fi
+
+# 验证 Config Server 认证
+echo ""
+echo -e "${BLUE}🔐 验证 Config Server 认证...${NC}"
+if curl -sf -u config:config123 "http://localhost:8888/review-service/prod" > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Config Server 认证正常${NC}"
+else
+    echo -e "${YELLOW}⚠️  Config Server 认证验证失败，但继续启动...${NC}"
+fi
 
 # 启动服务注册中心
 echo ""
@@ -88,10 +134,13 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 等待Eureka就绪
+# 等待 Eureka Server 就绪（使用健康检查）
 echo ""
-echo -e "${YELLOW}⏳ 等待Eureka Server启动...${NC}"
-sleep 20
+if ! wait_for_healthy "eureka-server" "http://localhost:8761/actuator/health" 120; then
+    echo -e "${RED}❌ Eureka Server 启动失败或超时${NC}"
+    echo -e "${YELLOW}查看日志: docker compose logs eureka-server${NC}"
+    exit 1
+fi
 
 # 启动微服务
 echo ""
@@ -103,15 +152,52 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 等待微服务启动
+# 等待微服务健康检查（并行检查多个服务）
 echo ""
-echo -e "${YELLOW}⏳ 等待微服务启动...${NC}"
-sleep 30
+echo -e "${YELLOW}⏳ 等待微服务就绪...${NC}"
+echo -e "${BLUE}提示: 微服务会重试连接 Config Server，初次可能会有 401 警告（正常现象）${NC}"
+
+# 定义需要检查的微服务及其端口
+declare -A services=(
+    ["admin-service"]="8082"
+    ["cafeteria-service"]="8083"
+    ["review-service"]="8084"
+    ["media-service"]="8085"
+    ["preference-service"]="8086"
+)
+
+# 等待所有微服务就绪
+all_healthy=true
+for service in "${!services[@]}"; do
+    port=${services[$service]}
+    echo ""
+    if ! wait_for_healthy "$service" "http://localhost:$port/actuator/health" 180; then
+        echo -e "${YELLOW}⚠️  $service 启动超时，但继续检查其他服务...${NC}"
+        all_healthy=false
+    fi
+done
+
+# 启动 Gateway Service
+echo ""
+echo -e "${BLUE}🌐 启动 Gateway Service...${NC}"
+if ! wait_for_healthy "gateway-service" "http://localhost:8080/actuator/health" 120; then
+    echo -e "${YELLOW}⚠️  Gateway Service 启动超时${NC}"
+    all_healthy=false
+fi
 
 # 显示所有服务状态
 echo ""
 echo -e "${BLUE}📊 所有服务状态:${NC}"
 docker compose ps
+
+# 显示启动结果
+echo ""
+if [ "$all_healthy" = true ]; then
+    echo -e "${GREEN}✅ 所有服务健康检查通过！${NC}"
+else
+    echo -e "${YELLOW}⚠️  部分服务未通过健康检查，请查看日志${NC}"
+    echo -e "${YELLOW}提示: 使用 'docker compose logs -f [service-name]' 查看详细日志${NC}"
+fi
 
 echo ""
 echo "=========================================="
