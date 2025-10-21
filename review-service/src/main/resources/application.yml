@@ -5,6 +5,10 @@ spring:
   application:
     name: review-service
 
+  # Spring Cloud Config Import (required for Spring Cloud 2020.0+)
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}"
+
   # MongoDB Configuration
   data:
     mongodb:
