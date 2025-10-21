@@ -1,12 +1,12 @@
--- 创建所有微服务需要的数据库
+-- 创建所有微服务需要的数据库 (PostgreSQL 语法)
+-- 注意: PostgreSQL 的 docker-entrypoint-initdb.d 脚本在首次启动时自动执行
+-- 如果数据库已存在,CREATE DATABASE 会报错但不影响后续操作
 
-CREATE DATABASE IF NOT EXISTS admin_db;
-CREATE DATABASE IF NOT EXISTS cafeteria_db;
-CREATE DATABASE IF NOT EXISTS media_db;
-CREATE DATABASE IF NOT EXISTS preference_db;
+-- 为了避免重复创建错误,使用 \gexec 和条件查询(需要 psql)
+-- 或者简单地尝试创建,如果失败则忽略
 
--- 授权
-GRANT ALL PRIVILEGES ON DATABASE admin_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE cafeteria_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE media_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE preference_db TO postgres;
+-- 创建数据库(如果已存在会报错,但容器初始化时只运行一次,所以问题不大)
+CREATE DATABASE admin_db;
+CREATE DATABASE cafeteria_db;
+CREATE DATABASE media_db;
+CREATE DATABASE preference_db;

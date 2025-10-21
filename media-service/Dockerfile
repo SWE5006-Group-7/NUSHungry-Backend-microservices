@@ -38,9 +38,9 @@ WORKDIR /app
 # 从构建阶段复制 JAR 文件
 COPY --from=builder /app/target/*.jar app.jar
 
-# 创建文件存储目录和日志目录
-RUN mkdir -p /app/uploads /var/log/media-service && \
-    chown -R appuser:appgroup /app/uploads /var/log/media-service
+# 创建文件存储目录和日志目录 (与 logback-spring.xml 中的路径一致)
+RUN mkdir -p /app/uploads /app/logs /var/log/media-service && \
+    chown -R appuser:appgroup /app/uploads /app/logs /var/log/media-service
 
 # 切换到非root用户
 USER appuser
