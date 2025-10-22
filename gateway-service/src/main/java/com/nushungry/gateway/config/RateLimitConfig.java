@@ -3,6 +3,7 @@ package com.nushungry.gateway.config;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import reactor.core.publisher.Mono;
 
 /**
@@ -15,8 +16,10 @@ public class RateLimitConfig {
 
     /**
      * Key resolver for rate limiting based on IP address
+     * Primary resolver used by default when not explicitly specified
      */
     @Bean
+    @Primary
     public KeyResolver ipKeyResolver() {
         return exchange -> {
             String ipAddress = exchange.getRequest()
