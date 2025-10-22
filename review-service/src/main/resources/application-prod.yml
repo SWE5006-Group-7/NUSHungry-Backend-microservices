@@ -18,8 +18,13 @@ spring:
   # MongoDB Configuration (生产环境)
   data:
     mongodb:
-      # 生产环境使用 URI 格式连接（支持副本集）
-      uri: mongodb://${MONGODB_USERNAME:admin}:${MONGODB_PASSWORD:password}@${MONGODB_HOST:mongodb-service}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:review_service}?authSource=admin
+      # 使用 host/port/database 格式（优先级高于 URI）
+      host: ${MONGODB_HOST:mongodb}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DATABASE:nushungry_reviews}
+      username: ${MONGODB_USERNAME:admin}
+      password: ${MONGODB_PASSWORD:admin123}
+      authentication-database: admin
       # 连接池配置
       auto-index-creation: false  # 生产环境手动管理索引
       uuid-representation: standard
@@ -39,10 +44,10 @@ spring:
   
   # RabbitMQ Configuration (生产环境)
   rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq-service}
+    host: ${RABBITMQ_HOST:rabbitmq}
     port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:admin}
-    password: ${RABBITMQ_PASSWORD:password}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: ${RABBITMQ_VHOST:/review}
     
     # 连接配置

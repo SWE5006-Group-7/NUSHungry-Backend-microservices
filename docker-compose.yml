@@ -254,6 +254,9 @@ services:
       CONFIG_SERVER_URI: http://config-server:8888
       CONFIG_SERVER_USERNAME: ${CONFIG_SERVER_USERNAME:-config}
       CONFIG_SERVER_PASSWORD: ${CONFIG_SERVER_PASSWORD:-config123}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CLOUD_CONFIG_USERNAME: ${CONFIG_SERVER_USERNAME:-config}
+      SPRING_CLOUD_CONFIG_PASSWORD: ${CONFIG_SERVER_PASSWORD:-config123}
       # Database
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cafeteria_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
@@ -263,6 +266,9 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
       # Eureka
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://${EUREKA_USERNAME:-eureka}:${EUREKA_PASSWORD:-eureka}@eureka-server:8761/eureka/
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
@@ -280,14 +286,16 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - nushungry-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
-      interval: 60s
-      timeout: 60s
-      retries: 10
-      start_period: 240s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Review Service
   review-service:
@@ -302,9 +310,24 @@ services:
       CONFIG_SERVER_URI: http://config-server:8888
       CONFIG_SERVER_USERNAME: ${CONFIG_SERVER_USERNAME:-config}
       CONFIG_SERVER_PASSWORD: ${CONFIG_SERVER_PASSWORD:-config123}
-      # Database
-      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/review_db?authSource=admin
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CLOUD_CONFIG_USERNAME: ${CONFIG_SERVER_USERNAME:-config}
+      SPRING_CLOUD_CONFIG_PASSWORD: ${CONFIG_SERVER_PASSWORD:-config123}
+      # Database (MongoDB)
+      MONGODB_HOST: mongodb
+      MONGODB_PORT: 27017
+      MONGODB_DATABASE: nushungry_reviews
+      MONGODB_USERNAME: ${MONGO_USER:-admin}
+      MONGODB_PASSWORD: ${MONGO_PASSWORD:-admin123}
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_DATABASE: nushungry_reviews
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/nushungry_reviews?authSource=admin
       # RabbitMQ
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
@@ -329,11 +352,11 @@ services:
     networks:
       - nushungry-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
-      interval: 15s
+      test: ["CMD", "curl", "-f", "http://localhost:9084/actuator/health"]
+      interval: 30s
       timeout: 10s
-      retries: 10
-      start_period: 120s
+      retries: 3
+      start_period: 60s
 
   # Media Service
   media-service:
@@ -398,10 +421,16 @@ services:
       CONFIG_SERVER_URI: http://config-server:8888
       CONFIG_SERVER_USERNAME: ${CONFIG_SERVER_USERNAME:-config}
       CONFIG_SERVER_PASSWORD: ${CONFIG_SERVER_PASSWORD:-config123}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CLOUD_CONFIG_USERNAME: ${CONFIG_SERVER_USERNAME:-config}
+      SPRING_CLOUD_CONFIG_PASSWORD: ${CONFIG_SERVER_PASSWORD:-config123}
       # Database
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/preference_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
       # Eureka
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://${EUREKA_USERNAME:-eureka}:${EUREKA_PASSWORD:-eureka}@eureka-server:8761/eureka/
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
@@ -417,14 +446,16 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - nushungry-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
-      interval: 15s
+      interval: 30s
       timeout: 10s
-      retries: 10
-      start_period: 120s
+      retries: 3
+      start_period: 60s
 
   # Gateway Service - API统一入口
   gateway-service:

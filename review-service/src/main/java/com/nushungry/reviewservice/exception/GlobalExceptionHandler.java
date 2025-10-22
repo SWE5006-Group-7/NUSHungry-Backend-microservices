@@ -16,8 +16,6 @@ import java.util.Map;
  * Global Exception Handler for Review Service
  *
  * Handles application-specific exceptions and provides consistent error responses.
- * Note: Does NOT handle NoResourceFoundException to avoid interfering with Spring Boot's
- * default handling of static resources and actuator endpoints.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -59,14 +57,13 @@ public class GlobalExceptionHandler {
     /**
      * Handle all other unexpected exceptions
      *
-     * Note: NoResourceFoundException is intentionally NOT handled here to allow
-     * Spring Boot's default error handling for static resources and actuator endpoints.
+     * Note: NoResourceFoundException is not handled here and will be handled by Spring Boot's default error handling
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
-        // Skip handling NoResourceFoundException - let Spring Boot handle it
+    public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) throws Exception {
+        // Let NoResourceFoundException propagate to Spring Boot's default handler
         if (ex instanceof NoResourceFoundException) {
-            throw (NoResourceFoundException) ex;
+            throw ex;
         }
 
         return ResponseEntity

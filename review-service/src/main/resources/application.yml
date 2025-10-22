@@ -12,17 +12,17 @@ spring:
   # MongoDB Configuration
   data:
     mongodb:
-      host: localhost
-      port: 27017
-      database: nushungry_reviews
+      host: ${MONGODB_HOST:mongodb}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DATABASE:nushungry_reviews}
       auto-index-creation: true
 
   # RabbitMQ Configuration
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
     publisher-confirm-type: correlated
     publisher-returns: true
     template:
