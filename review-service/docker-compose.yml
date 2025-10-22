@@ -60,13 +60,15 @@ services:
       
       # Config Server (必需，用于加载生产配置)
       CONFIG_SERVER_URI: ${CONFIG_SERVER_URI:-http://config-server:8888}
+      SPRING_CLOUD_CONFIG_USERNAME: ${SPRING_CLOUD_CONFIG_USERNAME:-config}
+      SPRING_CLOUD_CONFIG_PASSWORD: ${SPRING_CLOUD_CONFIG_PASSWORD:-config123}
       
       # MongoDB 连接配置（容器网络地址）
       MONGODB_HOST: mongodb
       MONGODB_PORT: 27017
       MONGODB_DATABASE: nushungry_reviews
-      MONGODB_USERNAME: admin
-      MONGODB_PASSWORD: password123
+      MONGO_USER: admin
+      MONGO_PASSWORD: password123
       
       # RabbitMQ 连接配置（容器网络地址）
       RABBITMQ_HOST: rabbitmq

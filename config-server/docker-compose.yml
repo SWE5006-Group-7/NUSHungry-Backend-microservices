@@ -10,15 +10,17 @@ services:
       - "8888:8888"
     environment:
       # Spring Profile (native使用本地文件系统，git使用Git仓库)
-      - SPRING_PROFILES_ACTIVE=native
+      - SPRING_PROFILES_ACTIVE=git
 
       # Config Server 认证配置
       - CONFIG_SERVER_USERNAME=config
       - CONFIG_SERVER_PASSWORD=config123
 
       # Git 仓库配置（仅当使用 git profile 时需要）
-      # - CONFIG_GIT_URI=${CONFIG_GIT_URI:-https://github.com/your-org/config-repo.git}
-      # - CONFIG_GIT_BRANCH=${CONFIG_GIT_BRANCH:-main}
+      - CONFIG_GIT_URI=${CONFIG_GIT_URI:-https://github.com/SWE5006-Group-7/NUSHungry-config.git}
+      - CONFIG_GIT_BRANCH=${CONFIG_GIT_BRANCH:-main}
+      - CONFIG_GIT_USERNAME=${CONFIG_GIT_USERNAME}
+      - CONFIG_GIT_PASSWORD=${CONFIG_GIT_PASSWORD}
 
       # Eureka 连接配置（容器网络地址）
       - EUREKA_SERVER_URL=http://eureka:eureka@eureka-server:8761/eureka/
@@ -42,7 +44,9 @@ services:
 
   # Eureka Server (dependency)
   eureka-server:
-    image: nushungry/eureka-server:latest
+    build:
+      context: ../eureka-server
+      dockerfile: Dockerfile
     container_name: nushungry-eureka-server
     ports:
       - "8761:8761"

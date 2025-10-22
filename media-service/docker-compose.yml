@@ -61,6 +61,8 @@ services:
       
       # Config Server (必需，用于加载生产配置)
       CONFIG_SERVER_URI: ${CONFIG_SERVER_URI:-http://config-server:8888}
+      SPRING_CLOUD_CONFIG_USERNAME: ${SPRING_CLOUD_CONFIG_USERNAME:-config}
+      SPRING_CLOUD_CONFIG_PASSWORD: ${SPRING_CLOUD_CONFIG_PASSWORD:-config123}
 
       # PostgreSQL 连接配置（容器网络地址）
       DB_HOST: postgres

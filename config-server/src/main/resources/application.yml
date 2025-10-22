@@ -20,8 +20,8 @@ spring:
           # Git authentication (required for remote repositories)
           username: ${CONFIG_GIT_USERNAME:}
           password: ${CONFIG_GIT_PASSWORD:}
-          # Search paths within the repository
-          search-paths: '{application}'
+          # Search paths within the repository (empty = root directory)
+          search-paths: ''
           # Timeout for git operations (ms)
           timeout: 10
           # Force pull from remote on every request (disable for local development)

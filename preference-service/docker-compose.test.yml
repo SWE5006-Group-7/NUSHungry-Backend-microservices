@@ -1,0 +1,44 @@
+# 测试配置：只启动服务本身，连接到已存在的共享基础设施
+services:
+  preference-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: preference-service-test
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+      
+      # Config Server (with authentication)
+      CONFIG_SERVER_URI: http://host.docker.internal:8888
+      SPRING_CLOUD_CONFIG_USERNAME: config
+      SPRING_CLOUD_CONFIG_PASSWORD: config123
+      
+      # PostgreSQL (连接到host上的共享PostgreSQL)
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      
+      # Redis (连接到host上的共享Redis)
+      REDIS_HOST: host.docker.internal
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      
+      # Eureka
+      EUREKA_HOST: host.docker.internal
+      EUREKA_USERNAME: eureka
+      EUREKA_PASSWORD: eureka
+      
+      # JVM
+      JAVA_OPTS: -Xms512m -Xmx1024m -XX:+UseG1GC
+    ports:
+      - "8086:8086"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

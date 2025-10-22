@@ -1,0 +1,45 @@
+# 测试配置：只启动服务本身，连接到已存在的共享基础设施
+services:
+  admin-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: admin-service-test
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+      
+      # Config Server (with authentication)
+      CONFIG_SERVER_URI: http://host.docker.internal:8888
+      SPRING_CLOUD_CONFIG_USERNAME: config
+      SPRING_CLOUD_CONFIG_PASSWORD: config123
+      
+      # PostgreSQL (连接到host上的共享PostgreSQL)
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      
+      # RabbitMQ (连接到host上的共享RabbitMQ)
+      RABBITMQ_HOST: host.docker.internal
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      
+      # Eureka
+      EUREKA_HOST: host.docker.internal
+      EUREKA_USERNAME: eureka
+      EUREKA_PASSWORD: eureka
+      
+      # JVM
+      JAVA_OPTS: -Xms512m -Xmx1024m -XX:+UseG1GC
+    ports:
+      - "8082:8082"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
