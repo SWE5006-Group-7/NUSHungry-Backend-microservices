@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -110,7 +111,7 @@ public class CafeteriaControllerAdminIntegrationTest extends IntegrationTestBase
     @DisplayName("管理员更新食堂信息 - 成功")
     void shouldUpdateCafeteria_WhenAdmin() {
         // 先创建一个食堂
-        Cafeteria createdCafeteria = createTestCafeteria();
+        Long cafeteriaId = createTestCafeteria();
 
         // 更新食堂信息
         Cafeteria updateData = new Cafeteria();
@@ -119,7 +120,7 @@ public class CafeteriaControllerAdminIntegrationTest extends IntegrationTestBase
         updateData.setDescription("更新后的描述");
 
         webTestClient.put()
-                .uri("/api/cafeterias/" + createdCafeteria.getId())
+                .uri("/api/cafeterias/" + cafeteriaId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + adminToken)
                 .bodyValue(updateData)
@@ -136,10 +137,10 @@ public class CafeteriaControllerAdminIntegrationTest extends IntegrationTestBase
     @DisplayName("管理员删除食堂 - 成功")
     void shouldDeleteCafeteria_WhenAdmin() {
         // 先创建一个食堂
-        Cafeteria createdCafeteria = createTestCafeteria();
+        Long cafeteriaId = createTestCafeteria();
 
         webTestClient.delete()
-                .uri("/api/cafeterias/" + createdCafeteria.getId())
+                .uri("/api/cafeterias/" + cafeteriaId)
                 .header("Authorization", "Bearer " + adminToken)
                 .exchange()
                 .expectStatus().isOk()
@@ -152,13 +153,13 @@ public class CafeteriaControllerAdminIntegrationTest extends IntegrationTestBase
     @DisplayName("管理员修改食堂营业状态 - 成功")
     void shouldUpdateCafeteriaStatus_WhenAdmin() {
         // 先创建一个食堂
-        Cafeteria createdCafeteria = createTestCafeteria();
+        Long cafeteriaId = createTestCafeteria();
 
         Map<String, String> statusRequest = new HashMap<>();
         statusRequest.put("status", "CLOSED");
 
         webTestClient.put()
-                .uri("/api/cafeterias/" + createdCafeteria.getId() + "/status")
+                .uri("/api/cafeterias/" + cafeteriaId + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + adminToken)
                 .bodyValue(statusRequest)
@@ -224,10 +225,10 @@ public class CafeteriaControllerAdminIntegrationTest extends IntegrationTestBase
     @Test
     @DisplayName("普通用户尝试删除食堂 - 失败")
     void shouldNotDeleteCafeteria_WhenRegularUser() {
-        Cafeteria createdCafeteria = createTestCafeteria();
+        Long cafeteriaId = createTestCafeteria();
 
         webTestClient.delete()
-                .uri("/api/cafeterias/" + createdCafeteria.getId())
+                .uri("/api/cafeterias/" + cafeteriaId)
                 .header("Authorization", "Bearer " + userToken)
                 .exchange()
                 .expectStatus().isForbidden();
@@ -279,7 +280,7 @@ public class CafeteriaControllerAdminIntegrationTest extends IntegrationTestBase
     /**
      * 辅助方法：创建测试食堂
      */
-    private Cafeteria createTestCafeteria() {
+    private Long createTestCafeteria() {
         Cafeteria newCafeteria = new Cafeteria();
         newCafeteria.setName("测试食堂_" + System.currentTimeMillis());
         newCafeteria.setLocation("测试位置");
@@ -287,15 +288,27 @@ public class CafeteriaControllerAdminIntegrationTest extends IntegrationTestBase
         newCafeteria.setLatitude(1.300);
         newCafeteria.setLongitude(103.770);
 
-        return webTestClient.post()
+        EntityExchangeResult<byte[]> result = webTestClient.post()
                 .uri("/api/cafeterias")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + adminToken)
                 .bodyValue(newCafeteria)
                 .exchange()
                 .expectStatus().isCreated()
-                .expectBody(Cafeteria.class)
-                .returnResult()
-                .getResponseBody();
+                .expectBody()
+                .jsonPath("$.success").isEqualTo(true)
+                .jsonPath("$.cafeteria.id").isNotEmpty()
+                .jsonPath("$.cafeteria.name").isEqualTo(newCafeteria.getName())
+                .returnResult();
+
+        try {
+            // 解析JSON响应获取ID
+            String responseBody = new String(result.getResponseBody());
+            Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
+            Map<String, Object> cafeteriaData = (Map<String, Object>) response.get("cafeteria");
+            return Long.valueOf(cafeteriaData.get("id").toString());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse cafeteria ID from response", e);
+        }
     }
 }
