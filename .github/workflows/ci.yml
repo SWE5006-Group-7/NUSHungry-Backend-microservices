@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ "refactor/optimise-dep-check-stage" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "refactor/optimise-dep-check-stage" ]
+    branches: [ "main" ]
 
 
 jobs:
