@@ -18,6 +18,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+      - name: Use dependency cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/dependency-check-data
+          key: dependency-check-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            dependency-check-
 
       - name: Prepare test db
         run: docker run -d --name nushungry-mysql -e MYSQL_ROOT_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }} -e MYSQL_DATABASE=nushungry_db -p 3306:3306 mysql:8.0
@@ -50,6 +57,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+      - name: Use dependency cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/dependency-check-data
+          key: dependency-check-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            dependency-check-
       - name: Check code quality
         run: mvn compile spotbugs:check site -DnvdApiKey=${{ secrets.NVD_API_KEY }}
 
@@ -70,12 +84,12 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Cache OWASP Dependency-Check data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2/dependency-check-data
-          key: dependency-check-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          key: dependency-check-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            dependency-check-${{ runner.os }}-
+            dependency-check-
       - name: Dependency scan
         run: mvn compile dependency-check:check -DnvdApiKey=${{ secrets.NVD_API_KEY }} -Dossindex.username=chowjss@gmail.com -Dossindex.password=y${{ secrets.OSS_INDEX_TOKEN }} -DfailBuildOnCVSS=11 -Dformats=HTML
 
@@ -95,6 +109,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+      - name: Use dependency cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/dependency-check-data
+          key: dependency-check-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            dependency-check-
       - name: Check code style
         run: mvn checkstyle:checkstyle -DnvdApiKey=${{ secrets.NVD_API_KEY }}
       - name: Upload check style results
@@ -115,6 +136,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+      - name: Use dependency cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/dependency-check-data
+          key: dependency-check-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            dependency-check-
       - name: Package
         run: mvn package -DskipTests
       - name: Build image for scanning
