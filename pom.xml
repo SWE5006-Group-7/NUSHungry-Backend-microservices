@@ -143,6 +143,9 @@
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
                 <version>12.1.6</version>
+                <configuration>
+                    <nvdValidForHours>24</nvdValidForHours>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
