@@ -19,6 +19,13 @@ on:
       - develop
       - test
 
+# 授予 GITHUB_TOKEN 必要的权限
+permissions:
+  contents: read        # 读取代码
+  checks: write         # 创建 Check Runs (test-reporter 需要)
+  pull-requests: write  # 在 PR 中添加评论 (可选)
+  statuses: write       # 更新 commit 状态
+
 env:
   JAVA_VERSION: '17'
   MAVEN_OPTS: -Xmx3072m
