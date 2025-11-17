@@ -29,7 +29,7 @@ public class AuthController {
 
     @PostMapping(value = "/register", produces = "application/json")
     @Operation(summary = "Register a new user")
-    public ResponseEntity<AuthResponse> register(
+    public ResponseEntity<?> register(
             @Valid @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest) {
         try {
@@ -42,13 +42,13 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
             log.error("Registration failed for user {}: {}", request.getUsername(), e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
 
     @PostMapping(value = "/login", produces = "application/json")
     @Operation(summary = "Login user")
-    public ResponseEntity<AuthResponse> login(
+    public ResponseEntity<?> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
         try {
@@ -61,7 +61,7 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Login failed for user {}: {}", request.getUsername(), e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
 
@@ -97,7 +97,7 @@ public class AuthController {
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             log.error("Logout failed: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
 
