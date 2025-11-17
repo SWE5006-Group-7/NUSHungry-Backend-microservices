@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--
+        测试专用日志配置
+        - 仅使用控制台输出,不创建日志文件
+        - 降低日志级别以提高测试执行速度
+        - Spring Boot 测试时会自动优先加载此文件
+    -->
+
+    <!-- 控制台输出 - 简化格式 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 框架日志 - 仅显示警告和错误 -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springframework.web" level="WARN"/>
+    <logger name="org.springframework.security" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+
+    <!-- 应用日志 - 保持 DEBUG 以便调试测试 -->
+    <logger name="com.nushungry" level="DEBUG"/>
+
+    <!-- 根日志配置 - 仅控制台输出 -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
