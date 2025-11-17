@@ -242,7 +242,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # 使用 PAT 以允许触发后续工作流
+          # 如果未配置 PAT_TOKEN,回退到 GITHUB_TOKEN (但不会触发后续工作流)
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Update deployment manifests
         run: |

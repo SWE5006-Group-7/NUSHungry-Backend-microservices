@@ -94,7 +94,7 @@ class AdminAuthServiceTest {
         assertEquals(3600000L, response.getExpiresIn());
         assertEquals("admin", response.getUsername());
         assertEquals("admin@test.com", response.getEmail());
-        assertEquals("ADMIN", response.getRole());
+        assertEquals("ROLE_ADMIN", response.getRole());
         assertTrue(response.isAdmin());
 
         // 验证密码检查

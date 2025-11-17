@@ -28,7 +28,7 @@ import java.util.Optional;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/cafeterias/admin")
+@RequestMapping("/api/admin/cafeterias")
 @Tag(name = "管理员食堂管理", description = "管理员食堂管理相关接口")
 @PreAuthorize("hasRole('ADMIN')")
 @SecurityRequirement(name = "Bearer Authentication")

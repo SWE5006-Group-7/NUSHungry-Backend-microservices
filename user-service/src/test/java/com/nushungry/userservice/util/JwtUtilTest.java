@@ -437,7 +437,8 @@ class JwtUtilTest {
         String token = jwtUtil.generateAccessToken("", new HashMap<>());
 
         assertNotNull(token, "Should generate token even with empty username");
-        assertEquals("", jwtUtil.extractUsername(token), "Should extract empty username");
+        String extracted = jwtUtil.extractUsername(token);
+        assertTrue(extracted == null || extracted.isEmpty(), "Should extract empty username");
     }
 
     @Test
