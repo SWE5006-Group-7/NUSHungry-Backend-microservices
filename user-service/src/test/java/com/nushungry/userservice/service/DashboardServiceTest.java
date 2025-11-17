@@ -332,7 +332,7 @@ class DashboardServiceTest {
         assertEquals(testUser.getId(), user.getId());
         assertEquals(testUser.getUsername(), user.getUsername());
         assertEquals(testUser.getEmail(), user.getEmail());
-        assertEquals("USER", user.getRole()); // getValue() 返回简化格式
+        assertEquals("ROLE_USER", user.getRole());
     }
 
     @Test

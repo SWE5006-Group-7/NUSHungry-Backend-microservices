@@ -79,7 +79,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.refreshToken", notNullValue()))
                 .andExpect(jsonPath("$.username").value("testuser"))
                 .andExpect(jsonPath("$.email").value("test@example.com"))
-                .andExpect(jsonPath("$.role").value("USER"));
+                .andExpect(jsonPath("$.role").value("ROLE_USER"));
 
         // 验证数据库
         assert userRepository.count() == 1;

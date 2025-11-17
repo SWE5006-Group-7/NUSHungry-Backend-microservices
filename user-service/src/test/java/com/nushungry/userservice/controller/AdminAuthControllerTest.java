@@ -95,7 +95,7 @@ class AdminAuthControllerTest {
                 .andExpect(jsonPath("$.token", notNullValue()))
                 .andExpect(jsonPath("$.username").value("admin"))
                 .andExpect(jsonPath("$.email").value("admin@example.com"))
-                .andExpect(jsonPath("$.role").value("ADMIN"));
+                .andExpect(jsonPath("$.role").value("ROLE_ADMIN"));
     }
 
     @Test

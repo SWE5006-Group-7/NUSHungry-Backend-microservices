@@ -39,20 +39,20 @@ public class StallServiceTest {
     void findById_returnsOptional() {
         Stall s = new Stall();
         s.setId(1L);
-        when(stallRepository.findById(1L)).thenReturn(Optional.of(s));
+        when(stallRepository.findByIdWithCafeteria(1L)).thenReturn(Optional.of(s));
 
         Optional<Stall> res = stallService.findById(1L);
         assertTrue(res.isPresent());
         assertEquals(1L, res.get().getId());
-        verify(stallRepository, times(1)).findById(1L);
+        verify(stallRepository, times(1)).findByIdWithCafeteria(1L);
     }
 
     @Test
     void findAll_returnsList() {
-        when(stallRepository.findAll()).thenReturn(List.of(new Stall(), new Stall()));
+        when(stallRepository.findAllWithCafeteria()).thenReturn(List.of(new Stall(), new Stall()));
         var list = stallService.findAll();
         assertNotNull(list);
         assertEquals(2, list.size());
-        verify(stallRepository, times(1)).findAll();
+        verify(stallRepository, times(1)).findAllWithCafeteria();
     }
 }
