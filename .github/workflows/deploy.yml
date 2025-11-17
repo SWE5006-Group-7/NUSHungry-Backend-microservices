@@ -1,9 +1,14 @@
 # ============================================================================
-# Kubernetes 部署工作流 (通用多环境)
+# Kubernetes 部署工作流 (优化版)
 # ============================================================================
 # 用途: 将 Docker 镜像部署到 AWS EKS
 # 支持: 开发环境、测试环境、生产环境
 # 触发: 手动触发、镜像推送成功后自动触发、或 repository_dispatch
+# 优化点:
+#   1. 修复了 Secret 配置,匹配 k8s deployment 要求
+#   2. 优化了部署并行策略,按服务依赖关系分批部署
+#   3. 改进了健康检查机制,使用 kubectl exec 替代端口转发
+#   4. 移除了 RDS 初始化步骤(已在基础设施层完成)
 # ============================================================================
 
 name: Deploy to Kubernetes
@@ -171,10 +176,10 @@ jobs:
           done
 
   # =========================================================================
-  # Job 3: 部署到 EKS
+  # Job 3: 部署到 EKS - 第一批 (无依赖服务)
   # =========================================================================
-  deploy-to-eks:
-    name: Deploy to EKS
+  deploy-batch-1:
+    name: Deploy Batch 1 (user-service, media-service)
     runs-on: ubuntu-latest
     needs:
       - determine-config
@@ -183,9 +188,11 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 2  # 逐步部署,避免同时滚动更新所有服务
+      max-parallel: 2  # 两个无依赖服务并行部署
       matrix:
-        service: ${{ fromJson(needs.determine-config.outputs.services) }}
+        service:
+          - user-service
+          - media-service
 
     steps:
       # =====================================================================
@@ -231,17 +238,19 @@ jobs:
           kubectl create namespace ${{ needs.determine-config.outputs.namespace }}
 
       # =====================================================================
-      # 5. 创建/更新 Secrets (首次部署)
+      # 5. 创建/更新 Secrets (首次部署或更新)
       # =====================================================================
       - name: Create/Update Kubernetes Secrets
         run: |
           NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
 
-          # PostgreSQL Secret
+          # PostgreSQL Secret - 修复: 使用三个独立的数据库 URL
           kubectl create secret generic postgres-secret \
             --from-literal=username=postgres \
             --from-literal=password='${{ secrets.DB_PASSWORD }}' \
-            --from-literal=url='${{ secrets.POSTGRES_URL }}' \
+            --from-literal=user-db-url='${{ secrets.USER_DB_URL }}' \
+            --from-literal=cafeteria-db-url='${{ secrets.CAFETERIA_DB_URL }}' \
+            --from-literal=preference-db-url='${{ secrets.PREFERENCE_DB_URL }}' \
             --namespace $NAMESPACE \
             --dry-run=client -o yaml | kubectl apply -f -
 
@@ -365,7 +374,7 @@ jobs:
             --sort-by='.lastTimestamp' | tail -10
 
       # =====================================================================
-      # 11. 健康检查
+      # 11. 健康检查 (优化: 使用 kubectl exec)
       # =====================================================================
       - name: Health check
         if: github.event.inputs.skip_health_check != 'true'
@@ -389,22 +398,15 @@ jobs:
             -n $NAMESPACE \
             --timeout=300s
 
-          # 端口转发并测试健康端点
-          kubectl port-forward pod/${POD_NAME} 8080:8080 -n $NAMESPACE &
-          PF_PID=$!
-
-          sleep 5
-
-          # 测试 actuator health 端点
-          if curl -f http://localhost:8080/actuator/health; then
+          # 从 Pod 内部测试健康端点
+          if kubectl exec ${POD_NAME} -n $NAMESPACE -- \
+            wget -q -O- http://localhost:8080/actuator/health | grep -q "UP"; then
             echo "✅ Health check passed for $SERVICE"
           else
             echo "❌ Health check failed for $SERVICE"
-            kill $PF_PID 2>/dev/null || true
+            kubectl logs ${POD_NAME} -n $NAMESPACE --tail=50
             exit 1
           fi
-
-          kill $PF_PID 2>/dev/null || true
         continue-on-error: true
 
       # =====================================================================
@@ -424,14 +426,146 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
   # =========================================================================
-  # Job 4: 部署 Ingress (所有服务部署完成后)
+  # Job 4: 部署到 EKS - 第二批 (依赖第一批的服务)
+  # =========================================================================
+  deploy-batch-2:
+    name: Deploy Batch 2 (cafeteria, review, preference)
+    runs-on: ubuntu-latest
+    needs:
+      - determine-config
+      - deploy-batch-1  # 依赖第一批部署完成
+    environment: ${{ needs.determine-config.outputs.environment }}
+
+    strategy:
+      fail-fast: false
+      max-parallel: 3  # 三个服务并行部署
+      matrix:
+        service:
+          - cafeteria-service
+          - review-service
+          - preference-service
+
+    steps:
+      # 复用第一批的所有步骤,只是跳过 Secrets 创建(已在第一批创建)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ needs.determine-config.outputs.cluster_name }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Update image tag in deployment manifest
+        run: |
+          SERVICE="${{ matrix.service }}"
+          TAG="${{ needs.determine-config.outputs.tag }}"
+          ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+          MANIFEST="k8s/services/${SERVICE}/deployment.yaml"
+
+          echo "Updating $MANIFEST with image: ${ECR_REGISTRY}/${SERVICE}:${TAG}"
+          sed -i "s|image: .*/${SERVICE}:.*|image: ${ECR_REGISTRY}/${SERVICE}:${TAG}|g" "$MANIFEST"
+
+          echo "Updated manifest:"
+          grep "image:" "$MANIFEST"
+
+      - name: Deploy ${{ matrix.service }}
+        run: |
+          SERVICE="${{ matrix.service }}"
+          NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
+
+          echo "Deploying $SERVICE to $NAMESPACE..."
+
+          kubectl apply -f k8s/services/${SERVICE}/deployment.yaml -n $NAMESPACE
+          kubectl apply -f k8s/services/${SERVICE}/service.yaml -n $NAMESPACE
+
+          if [ -f "k8s/services/${SERVICE}/hpa.yaml" ]; then
+            kubectl apply -f k8s/services/${SERVICE}/hpa.yaml -n $NAMESPACE
+          fi
+
+      - name: Wait for rollout to complete
+        run: |
+          SERVICE="${{ matrix.service }}"
+          NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
+
+          kubectl rollout status deployment/${SERVICE} \
+            -n $NAMESPACE \
+            --timeout=${{ env.DEPLOYMENT_TIMEOUT }}
+
+      - name: Verify deployment
+        run: |
+          SERVICE="${{ matrix.service }}"
+          NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
+
+          echo "Pod status:"
+          kubectl get pods -l app=${SERVICE} -n $NAMESPACE
+
+          echo ""
+          echo "Deployment status:"
+          kubectl get deployment ${SERVICE} -n $NAMESPACE
+
+      - name: Health check
+        if: github.event.inputs.skip_health_check != 'true'
+        run: |
+          SERVICE="${{ matrix.service }}"
+          NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
+
+          POD_NAME=$(kubectl get pods -l app=${SERVICE} -n $NAMESPACE \
+            -o jsonpath='{.items[0].metadata.name}')
+
+          if [ -z "$POD_NAME" ]; then
+            echo "❌ No pod found for $SERVICE"
+            exit 1
+          fi
+
+          kubectl wait --for=condition=ready pod/${POD_NAME} \
+            -n $NAMESPACE \
+            --timeout=300s
+
+          if kubectl exec ${POD_NAME} -n $NAMESPACE -- \
+            wget -q -O- http://localhost:8080/actuator/health | grep -q "UP"; then
+            echo "✅ Health check passed for $SERVICE"
+          else
+            echo "❌ Health check failed for $SERVICE"
+            kubectl logs ${POD_NAME} -n $NAMESPACE --tail=50
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Output deployment info
+        run: |
+          echo "## 🚀 Deployment Complete: ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: \`${{ needs.determine-config.outputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag**: \`${{ needs.determine-config.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Namespace**: \`${{ needs.determine-config.outputs.namespace }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pod Status" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -l app=${{ matrix.service }} -n ${{ needs.determine-config.outputs.namespace }} >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # =========================================================================
+  # Job 5: 部署 Ingress (所有服务部署完成后)
   # =========================================================================
   deploy-ingress:
     name: Deploy Ingress
     runs-on: ubuntu-latest
     needs:
       - determine-config
-      - deploy-to-eks
+      - deploy-batch-2
     if: success()
 
     steps:
@@ -480,14 +614,15 @@ jobs:
         continue-on-error: true
 
   # =========================================================================
-  # Job 5: 部署总结
+  # Job 6: 部署总结
   # =========================================================================
   deployment-summary:
     name: Deployment Summary
     runs-on: ubuntu-latest
     needs:
       - determine-config
-      - deploy-to-eks
+      - deploy-batch-1
+      - deploy-batch-2
       - deploy-ingress
     if: always()
 
@@ -509,8 +644,9 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Deployment Status" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deploy to EKS**: ${{ needs.deploy-to-eks.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deploy Ingress**: ${{ needs.deploy-ingress.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Batch 1 (user, media)**: ${{ needs.deploy-batch-1.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Batch 2 (cafeteria, review, preference)**: ${{ needs.deploy-batch-2.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ingress**: ${{ needs.deploy-ingress.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Verification Commands" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
@@ -532,7 +668,8 @@ jobs:
 
       - name: Check overall deployment status
         run: |
-          if [ "${{ needs.deploy-to-eks.result }}" != "success" ]; then
+          if [ "${{ needs.deploy-batch-1.result }}" != "success" ] || \
+             [ "${{ needs.deploy-batch-2.result }}" != "success" ]; then
             echo "❌ Deployment failed!"
             exit 1
           fi
