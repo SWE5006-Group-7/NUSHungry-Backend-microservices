@@ -45,8 +45,8 @@ spec:
       containers:
       - name: frontend
         # 镜像地址（使用占位符，部署时替换）
-        # 格式：${ECR_REGISTRY}/nushungry-frontend:${IMAGE_TAG}
-        image: ${ECR_REGISTRY}/nushungry-frontend:${IMAGE_TAG}
+        # 格式：PLACEHOLDER_REGISTRY/nushungry-frontend:PLACEHOLDER_TAG
+        image: PLACEHOLDER_REGISTRY/nushungry-frontend:PLACEHOLDER_TAG
         
         # 镜像拉取策略
         imagePullPolicy: IfNotPresent

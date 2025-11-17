@@ -301,8 +301,9 @@ jobs:
 
           echo "Updating $MANIFEST with image: ${ECR_REGISTRY}/${SERVICE}:${TAG}"
 
-          # 使用 sed 更新镜像标签
-          sed -i "s|image: .*/${SERVICE}:.*|image: ${ECR_REGISTRY}/${SERVICE}:${TAG}|g" "$MANIFEST"
+          # 使用 sed 替换占位符
+          sed -i "s|PLACEHOLDER_REGISTRY|${ECR_REGISTRY}|g" "$MANIFEST"
+          sed -i "s|PLACEHOLDER_TAG|${TAG}|g" "$MANIFEST"
 
           echo "Updated manifest:"
           grep "image:" "$MANIFEST"
@@ -476,7 +477,10 @@ jobs:
           MANIFEST="k8s/services/${SERVICE}/deployment.yaml"
 
           echo "Updating $MANIFEST with image: ${ECR_REGISTRY}/${SERVICE}:${TAG}"
-          sed -i "s|image: .*/${SERVICE}:.*|image: ${ECR_REGISTRY}/${SERVICE}:${TAG}|g" "$MANIFEST"
+
+          # 使用 sed 替换占位符
+          sed -i "s|PLACEHOLDER_REGISTRY|${ECR_REGISTRY}|g" "$MANIFEST"
+          sed -i "s|PLACEHOLDER_TAG|${TAG}|g" "$MANIFEST"
 
           echo "Updated manifest:"
           grep "image:" "$MANIFEST"
