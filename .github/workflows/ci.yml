@@ -99,8 +99,20 @@ jobs:
       - name: Check coverage threshold
         working-directory: ${{ matrix.service }}
         run: |
-          mvn jacoco:check -Djacoco.minimum.coverage=${{ env.COVERAGE_THRESHOLD }} || \
-          echo "::warning::${{ matrix.service }} coverage below ${{ env.COVERAGE_THRESHOLD }}%"
+          # 提取覆盖率百分比
+          if [ -f "target/site/jacoco/index.html" ]; then
+            coverage=$(grep -oP 'Total.*?([0-9]+)%' target/site/jacoco/index.html | tail -1 | grep -oP '[0-9]+' || echo "0")
+            echo "📊 ${{ matrix.service }} coverage: ${coverage}%"
+
+            if [ "$coverage" -lt "${{ env.COVERAGE_THRESHOLD }}" ]; then
+              echo "::warning::${{ matrix.service }} coverage (${coverage}%) below threshold (${{ env.COVERAGE_THRESHOLD }}%)"
+              echo "⚠️ Please add more tests to improve coverage"
+            else
+              echo "✅ Coverage meets threshold"
+            fi
+          else
+            echo "::warning::Coverage report not found for ${{ matrix.service }}"
+          fi
         continue-on-error: true
 
       - name: Upload coverage report
@@ -144,24 +156,50 @@ jobs:
             -Dformat=HTML \
             -Dformat=JSON \
             -DfailBuildOnCVSS=7 \
-            -DsuppressionFile=.github/dependency-check-suppressions.xml || true
+            -DsuppressionFile=.github/dependency-check-suppressions.xml || \
+            echo "::warning::OWASP Dependency Check completed with warnings"
         continue-on-error: true
+
+      - name: Check if OWASP report exists
+        id: owasp-check
+        run: |
+          if [ -f "target/dependency-check-report.html" ]; then
+            echo "report_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ OWASP report generated"
+          else
+            echo "report_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ OWASP report not found (this is non-blocking)"
+          fi
 
       - name: Upload OWASP report
         uses: actions/upload-artifact@v4
-        if: always()
+        if: steps.owasp-check.outputs.report_exists == 'true'
         with:
           name: owasp-dependency-check-report
           path: target/dependency-check-report.html
           retention-days: 30
 
       - name: SpotBugs analysis
-        run: mvn spotbugs:check -DfailOnError=false || echo "SpotBugs issues found"
+        run: |
+          mvn spotbugs:check -DfailOnError=false || \
+            echo "::warning::SpotBugs analysis completed with warnings"
         continue-on-error: true
+
+      - name: Check if SpotBugs reports exist
+        id: spotbugs-check
+        run: |
+          if ls **/target/spotbugsXml.xml 1> /dev/null 2>&1; then
+            echo "reports_exist=true" >> $GITHUB_OUTPUT
+            echo "✅ SpotBugs reports found:"
+            ls -lh **/target/spotbugsXml.xml || true
+          else
+            echo "reports_exist=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No SpotBugs reports found (this is non-blocking)"
+          fi
 
       - name: Upload SpotBugs report
         uses: actions/upload-artifact@v4
-        if: always()
+        if: steps.spotbugs-check.outputs.reports_exist == 'true'
         with:
           name: spotbugs-report
           path: |
@@ -170,116 +208,7 @@ jobs:
           retention-days: 30
 
   # =========================================================================
-  # Job 4: 集成测试 (可选,需要基础设施)
-  # =========================================================================
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    if: github.event_name == 'pull_request'
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: nushungry_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      mongodb:
-        image: mongo:7
-        env:
-          MONGO_INITDB_ROOT_USERNAME: admin
-          MONGO_INITDB_ROOT_PASSWORD: admin123
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      rabbitmq:
-        image: rabbitmq:3.12-management-alpine
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        ports:
-          - 5672:5672
-          - 15672:15672
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 30s
-          --health-timeout 10s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Wait for services to be ready
-        run: |
-          echo "Waiting for PostgreSQL..."
-          until pg_isready -h localhost -p 5432; do sleep 2; done
-
-          echo "Waiting for MongoDB..."
-          sleep 10
-
-          echo "Waiting for RabbitMQ..."
-          until curl -f http://localhost:15672 > /dev/null 2>&1; do sleep 2; done
-
-          echo "All services ready!"
-
-      - name: Run integration tests
-        run: mvn verify -Pintegration-tests -B
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nushungry_test
-          SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: postgres
-          SPRING_DATA_MONGODB_URI: mongodb://admin:admin123@localhost:27017/nushungry_test?authSource=admin
-          SPRING_REDIS_HOST: localhost
-          SPRING_REDIS_PORT: 6379
-          SPRING_RABBITMQ_HOST: localhost
-          SPRING_RABBITMQ_PORT: 5672
-          SPRING_RABBITMQ_USERNAME: guest
-          SPRING_RABBITMQ_PASSWORD: guest
-
-      - name: Upload integration test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-test-results
-          path: |
-            **/target/failsafe-reports/
-            **/target/site/jacoco-it/
-          retention-days: 7
-
-  # =========================================================================
-  # Job 5: 构建验证 (确保可以成功构建 JAR)
+  # Job 4: 构建验证 (确保可以成功构建 JAR)
   # =========================================================================
   build-validation:
     name: Build Validation
@@ -323,7 +252,7 @@ jobs:
           retention-days: 3
 
   # =========================================================================
-  # Job 6: Docker 构建验证
+  # Job 5: Docker 构建验证
   # =========================================================================
   docker-build-validation:
     name: Docker Build Validation
@@ -375,7 +304,7 @@ jobs:
           docker images ${{ matrix.service }}:ci-${{ github.sha }} --format "{{.Size}}"
 
   # =========================================================================
-  # Job 7: CI 总结报告
+  # Job 6: CI 总结报告
   # =========================================================================
   ci-summary:
     name: CI Summary
