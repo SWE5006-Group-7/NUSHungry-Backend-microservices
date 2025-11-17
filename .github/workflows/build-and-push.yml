@@ -402,7 +402,9 @@ jobs:
       - name: Trigger deployment workflow
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # 使用 PAT_TOKEN 以允许触发其他工作流
+          # 如果未配置，将跳过此步骤
+          token: ${{ secrets.PAT_TOKEN }}
           event-type: deploy
           client-payload: |
             {
@@ -412,3 +414,4 @@ jobs:
               "commit_sha": "${{ github.sha }}",
               "ref": "${{ github.ref }}"
             }
+        continue-on-error: true
