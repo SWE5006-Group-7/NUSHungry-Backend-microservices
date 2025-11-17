@@ -163,6 +163,27 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       # =====================================================================
+      # 4.5. 确保 ECR 仓库存在
+      # =====================================================================
+      - name: Ensure ECR repository exists
+        run: |
+          REPO_NAME="${{ matrix.service }}"
+
+          # 检查仓库是否存在
+          if ! aws ecr describe-repositories --repository-names "$REPO_NAME" --region ${{ env.AWS_REGION }} 2>/dev/null; then
+            echo "📦 创建 ECR 仓库: $REPO_NAME"
+            aws ecr create-repository \
+              --repository-name "$REPO_NAME" \
+              --region ${{ env.AWS_REGION }} \
+              --image-scanning-configuration scanOnPush=true \
+              --encryption-configuration encryptionType=AES256 \
+              --tags Key=Project,Value=NUSHungry Key=Service,Value="$REPO_NAME" Key=Environment,Value=dev
+            echo "✅ 仓库创建成功"
+          else
+            echo "✅ 仓库已存在: $REPO_NAME"
+          fi
+
+      # =====================================================================
       # 5. 设置 Java 环境
       # =====================================================================
       - name: Setup Java ${{ env.JAVA_VERSION }}
