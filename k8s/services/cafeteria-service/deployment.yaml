@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
       - name: cafeteria-service
-        image: 668191888579.dkr.ecr.ap-southeast-1.amazonaws.com/nushungry-dev-cafeteria-service:latest
+        image: PLACEHOLDER_REGISTRY/cafeteria-service:PLACEHOLDER_TAG
         imagePullPolicy: Always
         ports:
         - containerPort: 8083

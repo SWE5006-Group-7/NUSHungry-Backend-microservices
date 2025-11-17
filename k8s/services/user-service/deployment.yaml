@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: ${ECR_REGISTRY}/user-service:${IMAGE_TAG}
+        image: PLACEHOLDER_REGISTRY/user-service:PLACEHOLDER_TAG
         imagePullPolicy: Always
         ports:
         - containerPort: 8081
