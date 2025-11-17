@@ -89,7 +89,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     @Operation(summary = "Logout user and revoke refresh token")
-    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<?> logout(@Valid @RequestBody RefreshTokenRequest request) {
         try {
             log.info("Logout request received");
             refreshTokenService.revokeRefreshToken(request.getRefreshToken());
