@@ -74,10 +74,12 @@ jobs:
       tag: ${{ steps.config.outputs.tag }}
 
     steps:
-      - name: Determine environment and config
+      - name: Determine deployment configuration
         id: config
         run: |
-          # 确定环境
+          # ============================================================
+          # 1. 确定环境
+          # ============================================================
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             ENV="${{ github.event.inputs.environment }}"
           elif [ "${{ github.event_name }}" == "repository_dispatch" ]; then
@@ -93,7 +95,9 @@ jobs:
 
           echo "environment=$ENV" >> $GITHUB_OUTPUT
 
-          # 根据环境设置集群名称和命名空间
+          # ============================================================
+          # 2. 根据环境设置集群名称和命名空间
+          # ============================================================
           case $ENV in
             prod)
               CLUSTER="nushungry-prod-eks"
@@ -112,13 +116,9 @@ jobs:
           echo "cluster_name=$CLUSTER" >> $GITHUB_OUTPUT
           echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
 
-          echo "Environment: $ENV"
-          echo "Cluster: $CLUSTER"
-          echo "Namespace: $NAMESPACE"
-
-      - name: Determine services to deploy
-        id: services
-        run: |
+          # ============================================================
+          # 3. 确定要部署的服务
+          # ============================================================
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             if [ "${{ github.event.inputs.services }}" == "all" ]; then
               SERVICES='["user-service","cafeteria-service","review-service","media-service","preference-service"]'
@@ -132,20 +132,39 @@ jobs:
             SERVICES='["user-service","cafeteria-service","review-service","media-service","preference-service"]'
           fi
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
-          echo "Services to deploy: $SERVICES"
 
-      - name: Determine image tag
-        id: tag
-        run: |
+          # ============================================================
+          # 4. 确定镜像标签
+          # ============================================================
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             TAG="${{ github.event.inputs.tag }}"
           elif [ "${{ github.event_name }}" == "repository_dispatch" ]; then
             TAG="${{ github.event.client_payload.tag }}"
           else
-            TAG="latest"
+            # workflow_run: 使用触发工作流的 commit SHA
+            TAG="${{ github.sha }}"
           fi
+
+          # 确保 TAG 不为空,使用 github.sha 作为后备值
+          if [ -z "$TAG" ]; then
+            TAG="${{ github.sha }}"
+            echo "⚠️ TAG was empty, using github.sha as fallback: $TAG"
+          fi
+
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "Deploying image tag: $TAG"
+
+          # ============================================================
+          # 5. 输出配置摘要
+          # ============================================================
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Deployment Configuration"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Environment:  $ENV"
+          echo "Cluster:      $CLUSTER"
+          echo "Namespace:    $NAMESPACE"
+          echo "Services:     $SERVICES"
+          echo "Image Tag:    $TAG"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   # =========================================================================
   # Job 2: 验证部署前提条件
@@ -299,6 +318,16 @@ jobs:
           NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
           ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           MANIFEST="k8s/services/${SERVICE}/deployment.yaml"
+
+          # 验证关键变量不为空
+          if [ -z "$TAG" ]; then
+            echo "❌ ERROR: TAG is empty!"
+            echo "Debugging info:"
+            echo "  github.event_name: ${{ github.event_name }}"
+            echo "  github.sha: ${{ github.sha }}"
+            echo "  needs.determine-config.outputs.tag: ${{ needs.determine-config.outputs.tag }}"
+            exit 1
+          fi
 
           echo "Updating $MANIFEST with:"
           echo "  Registry: ${ECR_REGISTRY}"
@@ -497,6 +526,16 @@ jobs:
           NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
           ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           MANIFEST="k8s/services/${SERVICE}/deployment.yaml"
+
+          # 验证关键变量不为空
+          if [ -z "$TAG" ]; then
+            echo "❌ ERROR: TAG is empty!"
+            echo "Debugging info:"
+            echo "  github.event_name: ${{ github.event_name }}"
+            echo "  github.sha: ${{ github.sha }}"
+            echo "  needs.determine-config.outputs.tag: ${{ needs.determine-config.outputs.tag }}"
+            exit 1
+          fi
 
           echo "Updating $MANIFEST with:"
           echo "  Registry: ${ECR_REGISTRY}"
