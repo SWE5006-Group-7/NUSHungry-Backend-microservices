@@ -57,7 +57,7 @@ on:
 
 env:
   AWS_REGION: ap-southeast-1
-  DEPLOYMENT_TIMEOUT: 600s
+  DEPLOYMENT_TIMEOUT: 900s
 
 jobs:
   # =========================================================================
@@ -302,7 +302,6 @@ jobs:
             --from-literal=username=admin \
             --from-literal=password='${{ secrets.RABBITMQ_PASSWORD }}' \
             --from-literal=vhost="/" \
-            --from-literal=ssl="true" \
             --namespace $NAMESPACE \
             --dry-run=client -o yaml | kubectl apply -f -
 
@@ -435,6 +434,13 @@ jobs:
 
           echo "Performing health check for $SERVICE..."
 
+          # 获取服务端口
+          case $SERVICE in
+            user-service) PORT=8081 ;;
+            media-service) PORT=8085 ;;
+            *) PORT=8080 ;;
+          esac
+
           # 获取 Pod 名称
           POD_NAME=$(kubectl get pods -l app=${SERVICE} -n $NAMESPACE \
             -o jsonpath='{.items[0].metadata.name}')
@@ -451,8 +457,8 @@ jobs:
 
           # 从 Pod 内部测试健康端点
           if kubectl exec ${POD_NAME} -n $NAMESPACE -- \
-            wget -q -O- http://localhost:8080/actuator/health | grep -q "UP"; then
-            echo "✅ Health check passed for $SERVICE"
+            wget -q -O- http://localhost:${PORT}/actuator/health | grep -q "UP"; then
+            echo "✅ Health check passed for $SERVICE on port $PORT"
           else
             echo "❌ Health check failed for $SERVICE"
             kubectl logs ${POD_NAME} -n $NAMESPACE --tail=50
@@ -607,6 +613,16 @@ jobs:
           SERVICE="${{ matrix.service }}"
           NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
 
+          echo "Performing health check for $SERVICE..."
+
+          # 获取服务端口
+          case $SERVICE in
+            cafeteria-service) PORT=8083 ;;
+            review-service) PORT=8084 ;;
+            preference-service) PORT=8086 ;;
+            *) PORT=8080 ;;
+          esac
+
           POD_NAME=$(kubectl get pods -l app=${SERVICE} -n $NAMESPACE \
             -o jsonpath='{.items[0].metadata.name}')
 
@@ -620,8 +636,8 @@ jobs:
             --timeout=300s
 
           if kubectl exec ${POD_NAME} -n $NAMESPACE -- \
-            wget -q -O- http://localhost:8080/actuator/health | grep -q "UP"; then
-            echo "✅ Health check passed for $SERVICE"
+            wget -q -O- http://localhost:${PORT}/actuator/health | grep -q "UP"; then
+            echo "✅ Health check passed for $SERVICE on port $PORT"
           else
             echo "❌ Health check failed for $SERVICE"
             kubectl logs ${POD_NAME} -n $NAMESPACE --tail=50
