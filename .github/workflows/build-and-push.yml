@@ -35,7 +35,6 @@ env:
   # 注意: AWS_ACCOUNT_ID 必须在 GitHub Secrets 中配置
   # 获取方式: aws sts get-caller-identity --query Account --output text
   JAVA_VERSION: '17'
-  MAVEN_SETTINGS: .mvn/settings.xml  # 使用阿里云镜像配置
 
 jobs:
   # =========================================================================
@@ -202,7 +201,7 @@ jobs:
         working-directory: ${{ matrix.service }}
         run: |
           echo "Building ${{ matrix.service }}..."
-          mvn clean package -DskipTests -B -s ../${{ env.MAVEN_SETTINGS }}
+          mvn clean package -DskipTests -B -s ${{ github.workspace }}/.mvn/settings.xml
 
       # =====================================================================
       # 7. 设置 Docker Buildx

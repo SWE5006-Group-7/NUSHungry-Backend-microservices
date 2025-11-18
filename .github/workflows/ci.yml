@@ -30,7 +30,6 @@ permissions:
 env:
   JAVA_VERSION: '17'
   MAVEN_OPTS: -Xmx3072m
-  MAVEN_SETTINGS: .mvn/settings.xml  # 使用阿里云镜像配置
   COVERAGE_THRESHOLD: 70
 
 jobs:
@@ -57,10 +56,10 @@ jobs:
           settings-path: ${{ github.workspace }}/.mvn
 
       - name: Validate Maven POMs
-        run: mvn validate -s ${{ env.MAVEN_SETTINGS }}
+        run: mvn validate -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Check code formatting
-        run: mvn spotless:check -s ${{ env.MAVEN_SETTINGS }} || echo "Code formatting issues found, but continuing..."
+        run: mvn spotless:check -s ${{ github.workspace }}/.mvn/settings.xml || echo "Code formatting issues found, but continuing..."
         continue-on-error: true
 
   # =========================================================================
@@ -94,11 +93,11 @@ jobs:
 
       - name: Run tests for ${{ matrix.service }}
         working-directory: ${{ matrix.service }}
-        run: mvn clean test -B -s ../${{ env.MAVEN_SETTINGS }}
+        run: mvn clean test -B -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Generate JaCoCo coverage report
         working-directory: ${{ matrix.service }}
-        run: mvn jacoco:report -s ../${{ env.MAVEN_SETTINGS }}
+        run: mvn jacoco:report -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Check coverage threshold
         working-directory: ${{ matrix.service }}
@@ -156,7 +155,7 @@ jobs:
 
       - name: OWASP Dependency Check
         run: |
-          mvn dependency-check:check -s ${{ env.MAVEN_SETTINGS }} \
+          mvn dependency-check:check -s ${{ github.workspace }}/.mvn/settings.xml \
             -Dformat=HTML \
             -Dformat=JSON \
             -DfailBuildOnCVSS=7 \
@@ -185,7 +184,7 @@ jobs:
 
       - name: SpotBugs analysis
         run: |
-          mvn spotbugs:check -s ${{ env.MAVEN_SETTINGS }} -DfailOnError=false || \
+          mvn spotbugs:check -s ${{ github.workspace }}/.mvn/settings.xml -DfailOnError=false || \
             echo "::warning::SpotBugs analysis completed with warnings"
         continue-on-error: true
 
@@ -231,7 +230,7 @@ jobs:
           cache: 'maven'
 
       - name: Build all services
-        run: mvn clean package -DskipTests -B -s ${{ env.MAVEN_SETTINGS }}
+        run: mvn clean package -DskipTests -B -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Verify JAR files
         run: |
@@ -285,7 +284,7 @@ jobs:
 
       - name: Build JAR for ${{ matrix.service }}
         working-directory: ${{ matrix.service }}
-        run: mvn clean package -DskipTests -B -s ../${{ env.MAVEN_SETTINGS }}
+        run: mvn clean package -DskipTests -B -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
