@@ -13,10 +13,7 @@ spec:
     matchLabels:
       app: media-service
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+    type: Recreate  # 使用 Recreate 避免 ReadWriteOnce PVC 多重挂载问题
   template:
     metadata:
       labels:
@@ -53,6 +50,16 @@ spec:
             secretKeyRef:
               name: postgres-secret
               key: password
+
+        # HikariCP 连接池配置 (限制连接数避免耗尽 RDS 连接)
+        - name: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+          value: "3"  # 单副本服务,减少连接数
+        - name: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+          value: "1"
+        - name: SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT
+          value: "20000"
+        - name: SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT
+          value: "300000"
 
         # 文件上传配置
         - name: SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE
