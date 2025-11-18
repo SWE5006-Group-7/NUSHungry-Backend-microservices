@@ -8,16 +8,17 @@
 name: Continuous Integration
 
 on:
+  # PR 到 main/develop 时运行 CI
   pull_request:
     branches:
       - main
       - develop
-      - test
+
+  # 仅当代码合并到 main/develop 后运行 CI
   push:
     branches:
       - main
       - develop
-      - test
 
 # 授予 GITHUB_TOKEN 必要的权限
 permissions:
