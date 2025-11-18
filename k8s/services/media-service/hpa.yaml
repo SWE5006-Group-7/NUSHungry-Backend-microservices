@@ -10,8 +10,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: media-service
-  minReplicas: 2
-  maxReplicas: 8
+  minReplicas: 1  # 必须为1,因为使用 ReadWriteOnce PVC
+  maxReplicas: 1  # 锁定为1,避免 PVC 多重挂载问题
   metrics:
   - type: Resource
     resource:
