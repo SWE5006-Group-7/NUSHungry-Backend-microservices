@@ -111,10 +111,7 @@ spec:
               key: vhost
         # Amazon MQ 强制 TLS 连接
         - name: SPRING_RABBITMQ_SSL_ENABLED
-          valueFrom:
-            secretKeyRef:
-              name: amazonmq-secret
-              key: ssl
+          value: "true"
 
         # 服务发现配置
         - name: USER_SERVICE_URL
