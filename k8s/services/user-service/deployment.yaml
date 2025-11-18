@@ -54,6 +54,16 @@ spec:
               name: postgres-secret
               key: password
 
+        # HikariCP 连接池配置 (限制连接数避免耗尽 RDS 连接)
+        - name: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+          value: "5"  # 每个 Pod 最多 5 个连接 (2 replicas * 5 = 10)
+        - name: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+          value: "2"
+        - name: SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT
+          value: "20000"  # 20 秒
+        - name: SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT
+          value: "300000"  # 5 分钟
+
         # JWT 配置（从 Secret 获取）
         - name: JWT_SECRET
           valueFrom:
