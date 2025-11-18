@@ -7,6 +7,9 @@ FROM maven:3.9-eclipse-temurin-17-alpine AS builder
 # 设置工作目录
 WORKDIR /app
 
+# 复制 Maven 配置（使用阿里云镜像）
+COPY ../.mvn .mvn
+
 # 复制 pom.xml 和父项目依赖（利用 Docker 缓存）
 COPY pom.xml .
 
