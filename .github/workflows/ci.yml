@@ -155,7 +155,7 @@ jobs:
 
       - name: OWASP Dependency Check
         run: |
-          mvn dependency-check:check -s ${{ github.workspace }}/.mvn/settings.xml \
+          mvn org.owasp:dependency-check-maven:check -s ${{ github.workspace }}/.mvn/settings.xml \
             -Dformat=HTML \
             -Dformat=JSON \
             -DfailBuildOnCVSS=7 \
@@ -184,7 +184,7 @@ jobs:
 
       - name: SpotBugs analysis
         run: |
-          mvn spotbugs:check -s ${{ github.workspace }}/.mvn/settings.xml -DfailOnError=false || \
+          mvn com.github.spotbugs:spotbugs-maven-plugin:check -s ${{ github.workspace }}/.mvn/settings.xml -DfailOnError=false || \
             echo "::warning::SpotBugs analysis completed with warnings"
         continue-on-error: true
 

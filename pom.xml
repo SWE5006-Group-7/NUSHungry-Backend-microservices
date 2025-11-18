@@ -62,12 +62,22 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
+                <version>12.1.6</version>
+                <configuration>
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
+                    <suppressionFile>.github/dependency-check-suppressions.xml</suppressionFile>
+                </configuration>
             </plugin>
 
             <!-- 激活 SpotBugs 插件 -->
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.8.2.0</version>
             </plugin>
         </plugins>
     </build>
