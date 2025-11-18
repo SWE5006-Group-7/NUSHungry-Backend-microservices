@@ -201,7 +201,7 @@ jobs:
         working-directory: ${{ matrix.service }}
         run: |
           echo "Building ${{ matrix.service }}..."
-          mvn clean package -DskipTests -B
+          mvn clean package -DskipTests -B -s ${{ github.workspace }}/.mvn/settings.xml
 
       # =====================================================================
       # 7. 设置 Docker Buildx

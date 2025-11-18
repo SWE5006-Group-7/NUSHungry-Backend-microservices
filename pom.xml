@@ -41,6 +41,13 @@
                     <groupId>org.owasp</groupId>
                     <artifactId>dependency-check-maven</artifactId>
                     <version>12.1.6</version>
+                    <configuration>
+                        <failBuildOnCVSS>7</failBuildOnCVSS>
+                        <formats>
+                            <format>HTML</format>
+                            <format>JSON</format>
+                        </formats>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>com.github.spotbugs</groupId>
@@ -49,6 +56,20 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <!-- 激活 OWASP Dependency Check 插件 -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+            </plugin>
+
+            <!-- 激活 SpotBugs 插件 -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
     </build>
 
 </project>

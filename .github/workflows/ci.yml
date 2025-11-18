@@ -52,12 +52,14 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: 'maven'
+          # 使用阿里云 Maven 镜像
+          settings-path: ${{ github.workspace }}/.mvn
 
       - name: Validate Maven POMs
-        run: mvn validate
+        run: mvn validate -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Check code formatting
-        run: mvn spotless:check || echo "Code formatting issues found, but continuing..."
+        run: mvn spotless:check -s ${{ github.workspace }}/.mvn/settings.xml || echo "Code formatting issues found, but continuing..."
         continue-on-error: true
 
   # =========================================================================
@@ -91,11 +93,11 @@ jobs:
 
       - name: Run tests for ${{ matrix.service }}
         working-directory: ${{ matrix.service }}
-        run: mvn clean test -B
+        run: mvn clean test -B -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Generate JaCoCo coverage report
         working-directory: ${{ matrix.service }}
-        run: mvn jacoco:report
+        run: mvn jacoco:report -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Check coverage threshold
         working-directory: ${{ matrix.service }}
@@ -153,7 +155,7 @@ jobs:
 
       - name: OWASP Dependency Check
         run: |
-          mvn dependency-check:check \
+          mvn dependency-check:check -s ${{ github.workspace }}/.mvn/settings.xml \
             -Dformat=HTML \
             -Dformat=JSON \
             -DfailBuildOnCVSS=7 \
@@ -182,7 +184,7 @@ jobs:
 
       - name: SpotBugs analysis
         run: |
-          mvn spotbugs:check -DfailOnError=false || \
+          mvn spotbugs:check -s ${{ github.workspace }}/.mvn/settings.xml -DfailOnError=false || \
             echo "::warning::SpotBugs analysis completed with warnings"
         continue-on-error: true
 
@@ -228,7 +230,7 @@ jobs:
           cache: 'maven'
 
       - name: Build all services
-        run: mvn clean package -DskipTests -B
+        run: mvn clean package -DskipTests -B -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Verify JAR files
         run: |
@@ -282,7 +284,7 @@ jobs:
 
       - name: Build JAR for ${{ matrix.service }}
         working-directory: ${{ matrix.service }}
-        run: mvn clean package -DskipTests -B
+        run: mvn clean package -DskipTests -B -s ${{ github.workspace }}/.mvn/settings.xml
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
