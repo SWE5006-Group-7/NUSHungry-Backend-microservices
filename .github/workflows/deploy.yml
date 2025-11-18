@@ -296,17 +296,38 @@ jobs:
         run: |
           SERVICE="${{ matrix.service }}"
           TAG="${{ needs.determine-config.outputs.tag }}"
+          NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
           ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           MANIFEST="k8s/services/${SERVICE}/deployment.yaml"
 
-          echo "Updating $MANIFEST with image: ${ECR_REGISTRY}/${SERVICE}:${TAG}"
+          echo "Updating $MANIFEST with:"
+          echo "  Registry: ${ECR_REGISTRY}"
+          echo "  Service: ${SERVICE}"
+          echo "  Tag: ${TAG}"
+          echo "  Namespace: ${NAMESPACE}"
 
-          # 使用 sed 替换占位符
-          sed -i "s|PLACEHOLDER_REGISTRY|${ECR_REGISTRY}|g" "$MANIFEST"
-          sed -i "s|PLACEHOLDER_TAG|${TAG}|g" "$MANIFEST"
+          # 使用 sed 替换占位符 (使用 @ 作为分隔符避免 / 冲突)
+          sed -i "s@PLACEHOLDER_REGISTRY@${ECR_REGISTRY}@g" "$MANIFEST"
+          sed -i "s@PLACEHOLDER_TAG@${TAG}@g" "$MANIFEST"
 
-          echo "Updated manifest:"
-          grep "image:" "$MANIFEST"
+          # 同时更新 namespace (支持多环境部署)
+          sed -i "s@namespace: nushungry-dev@namespace: ${NAMESPACE}@g" "$MANIFEST"
+          sed -i "s@namespace: nushungry-staging@namespace: ${NAMESPACE}@g" "$MANIFEST"
+          sed -i "s@namespace: nushungry-prod@namespace: ${NAMESPACE}@g" "$MANIFEST"
+
+          echo ""
+          echo "Updated image line:"
+          grep "image:" "$MANIFEST" | grep -v "#" | head -1
+
+          echo ""
+          echo "Validating YAML syntax..."
+          if kubectl apply --dry-run=client -f "$MANIFEST" > /dev/null 2>&1; then
+            echo "✅ YAML syntax is valid"
+          else
+            echo "❌ YAML syntax error detected:"
+            kubectl apply --dry-run=client -f "$MANIFEST"
+            exit 1
+          fi
 
       # =====================================================================
       # 7. 应用 ConfigMap (如果存在)
@@ -473,17 +494,38 @@ jobs:
         run: |
           SERVICE="${{ matrix.service }}"
           TAG="${{ needs.determine-config.outputs.tag }}"
+          NAMESPACE="${{ needs.determine-config.outputs.namespace }}"
           ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           MANIFEST="k8s/services/${SERVICE}/deployment.yaml"
 
-          echo "Updating $MANIFEST with image: ${ECR_REGISTRY}/${SERVICE}:${TAG}"
+          echo "Updating $MANIFEST with:"
+          echo "  Registry: ${ECR_REGISTRY}"
+          echo "  Service: ${SERVICE}"
+          echo "  Tag: ${TAG}"
+          echo "  Namespace: ${NAMESPACE}"
 
-          # 使用 sed 替换占位符
-          sed -i "s|PLACEHOLDER_REGISTRY|${ECR_REGISTRY}|g" "$MANIFEST"
-          sed -i "s|PLACEHOLDER_TAG|${TAG}|g" "$MANIFEST"
+          # 使用 sed 替换占位符 (使用 @ 作为分隔符避免 / 冲突)
+          sed -i "s@PLACEHOLDER_REGISTRY@${ECR_REGISTRY}@g" "$MANIFEST"
+          sed -i "s@PLACEHOLDER_TAG@${TAG}@g" "$MANIFEST"
 
-          echo "Updated manifest:"
-          grep "image:" "$MANIFEST"
+          # 同时更新 namespace (支持多环境部署)
+          sed -i "s@namespace: nushungry-dev@namespace: ${NAMESPACE}@g" "$MANIFEST"
+          sed -i "s@namespace: nushungry-staging@namespace: ${NAMESPACE}@g" "$MANIFEST"
+          sed -i "s@namespace: nushungry-prod@namespace: ${NAMESPACE}@g" "$MANIFEST"
+
+          echo ""
+          echo "Updated image line:"
+          grep "image:" "$MANIFEST" | grep -v "#" | head -1
+
+          echo ""
+          echo "Validating YAML syntax..."
+          if kubectl apply --dry-run=client -f "$MANIFEST" > /dev/null 2>&1; then
+            echo "✅ YAML syntax is valid"
+          else
+            echo "❌ YAML syntax error detected:"
+            kubectl apply --dry-run=client -f "$MANIFEST"
+            exit 1
+          fi
 
       - name: Deploy ${{ matrix.service }}
         run: |
