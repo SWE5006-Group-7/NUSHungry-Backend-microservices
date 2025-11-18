@@ -112,6 +112,7 @@ jobs:
     permissions:
       contents: read
       id-token: write  # 用于 OIDC 认证
+      security-events: write  # 用于上传 Trivy/CodeQL 扫描结果
 
     steps:
       # =====================================================================
@@ -253,7 +254,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
@@ -283,7 +284,10 @@ jobs:
     needs:
       - determine-services
       - build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # 修复: 手动触发或 push 到 main 时都执行
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
 
     steps:
       - name: Checkout code
@@ -396,7 +400,10 @@ jobs:
     needs:
       - determine-services
       - build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # 修复: 手动触发或 push 到 main 时都执行
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
 
     steps:
       - name: Trigger deployment workflow
